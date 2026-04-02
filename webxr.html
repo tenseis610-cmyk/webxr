@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>MIRA AR Zone</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent:#2D6A4F;
+  --accent2:#52B788;
+  --dark:#111827;
+  --mid:#6B7280;
+  --light:#F9FAFB;
+  --border:#E5E7EB;
+  --glass:rgba(255,255,255,.92);
+  --shadow:0 4px 24px rgba(0,0,0,.10);
+  --radius:12px;
+  --sidebar-w:280px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hidden;user-select:none;}
+
+/* ── LOADER ─────────────────────────────────────────────────*/
+#loader{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;}
+#loader-logo{font-size:1.8rem;font-weight:700;color:var(--dark);letter-spacing:-1px;}
+#loader-logo span{color:var(--accent);}
+#loader-sub{font-size:.7rem;color:var(--mid);letter-spacing:2px;margin-top:.3rem;}
+#loader-bar{width:120px;height:2px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:1.6rem;}
+#loader-fill{height:100%;background:var(--accent);width:0;transition:width .08s;}
+
+/* ── LANDING PAGE ───────────────────────────────────────────*/
+#landing{
+  position:fixed;inset:0;z-index:20;
+  display:flex;flex-direction:column;
+  background:#0d1117;
+  overflow:hidden;
+}
+
+/* Landing top bar — minimal, logo only */
+#landing-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 1.25rem;
+  flex-shrink:0;
+}
+#landing-logo{font-size:1rem;font-weight:700;color:#fff;letter-spacing:-.3px;}
+#landing-logo span{color:var(--accent2);}
+#landing-badge{
+  font-size:.55rem;font-weight:600;letter-spacing:1px;
+  background:rgba(82,183,136,.15);color:var(--accent2);
+  border:1px solid rgba(82,183,136,.3);
+  border-radius:99px;padding:.22rem .7rem;
+}
+
+/* 3-D preview canvas window */
+#preview-wrap{
+  flex:1;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+#preview-canvas-wrap{
+  position:absolute;inset:0;
+}
+/* subtle vignette over the canvas */
+#preview-wrap::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center, transparent 40%, rgba(13,17,23,.7) 100%);
+  pointer-events:none;
+}
+/* floating tag above furniture */
+#preview-tag{
+  position:absolute;top:1.1rem;left:50%;transform:translateX(-50%);
+  background:rgba(255,255,255,.08);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:99px;padding:.3rem .9rem;
+  font-size:.6rem;color:rgba(255,255,255,.65);letter-spacing:1px;font-weight:500;
+  pointer-events:none;z-index:1;white-space:nowrap;
+}
+
+/* ── BOTTOM SHEET on landing ─────────────────────────────── */
+#landing-sheet{
+  flex-shrink:0;
+  background:rgba(255,255,255,.04);
+  border-top:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(16px);
+  padding:1.4rem 1.25rem calc(env(safe-area-inset-bottom,0px)+1.4rem);
+}
+
+#landing-headline{
+  font-size:1.35rem;font-weight:700;color:#fff;
+  letter-spacing:-.5px;line-height:1.25;
+  margin-bottom:.35rem;
+}
+#landing-headline span{color:var(--accent2);}
+#landing-sub{
+  font-size:.72rem;color:rgba(255,255,255,.5);
+  line-height:1.55;margin-bottom:1.2rem;
+}
+
+/* How-it-works steps */
+#steps{
+  display:grid;grid-template-columns:1fr 1fr;gap:.55rem;
+  margin-bottom:1.3rem;
+}
+.step{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:.7rem .75rem;
+  display:flex;flex-direction:column;gap:.3rem;
+}
+.step-num{
+  font-size:.52rem;font-weight:700;letter-spacing:1px;
+  color:var(--accent2);text-transform:uppercase;
+}
+.step-icon{font-size:1.1rem;line-height:1;}
+.step-title{font-size:.7rem;font-weight:600;color:#fff;line-height:1.3;}
+.step-desc{font-size:.6rem;color:rgba(255,255,255,.45);line-height:1.45;}
+
+/* CTA button */
+#landing-cta{
+  width:100%;border:none;border-radius:var(--radius);
+  background:var(--accent);color:#fff;
+  padding:.85rem;
+  font-family:'Inter',sans-serif;font-weight:700;font-size:.9rem;
+  cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  transition:all .2s;letter-spacing:-.1px;
+}
+#landing-cta:active{transform:scale(.97);background:#1B4D38;}
+#landing-cta.na{
+  background:rgba(239,68,68,.1);color:#EF4444;
+  border:1.5px solid rgba(239,68,68,.3);
+  cursor:default;
+}
+#landing-cta svg{flex-shrink:0;}
+
+/* requirements note */
+#landing-req{
+  margin-top:.75rem;text-align:center;
+  font-size:.58rem;color:rgba(255,255,255,.28);line-height:1.6;
+}
+
+/* ── HIDE landing when AR starts ──────────────────────────── */
+#landing.hidden{
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AR HUD — everything below is only shown during an AR session
+   ══════════════════════════════════════════════════════════════ */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;}
+
+/* ── AR TOP BAR ─────────────────────────────────────────── */
+#topbar{
+  pointer-events:all;
+  position:absolute;top:0;left:0;right:0;
+  padding:.7rem 1rem;
+  background:var(--glass);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;gap:.6rem;
+}
+#logo{font-size:.9rem;font-weight:700;color:var(--dark);flex:1;letter-spacing:-.4px;}
+#logo span{color:var(--accent);}
+#surf-pill{
+  font-size:.6rem;font-weight:600;letter-spacing:.5px;
+  border-radius:99px;padding:.22rem .7rem;border:1.5px solid;
+  transition:all .3s;flex-shrink:0;display:none;
+}
+#surf-pill.show{display:block;}
+#surf-pill.floor{color:var(--accent);border-color:var(--accent2);background:rgba(82,183,136,.08);}
+#surf-pill.wall{color:#B45309;border-color:#F59E0B;background:rgba(245,158,11,.08);}
+#surf-pill.ceiling{color:#1D4ED8;border-color:#60A5FA;background:rgba(96,165,250,.08);}
+/* Sidebar toggle — shown only in AR */
+#sidebar-toggle{
+  width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+  background:var(--light);color:var(--dark);font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;transition:all .2s;flex-shrink:0;
+}
+#sidebar-toggle:active{transform:scale(.9);}
+#sidebar-toggle.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+#sidebar{
+  pointer-events:all;
+  position:fixed;top:0;left:calc(-1 * var(--sidebar-w) - 4px);
+  width:var(--sidebar-w);height:100vh;
+  background:#fff;border-right:1px solid var(--border);
+  box-shadow:4px 0 32px rgba(0,0,0,.14);
+  z-index:9000;display:flex;flex-direction:column;
+  transition:left .3s cubic-bezier(.34,1.1,.64,1);overflow:hidden;
+}
+#sidebar.open{left:0;}
+#sidebar-overlay{
+  pointer-events:none;position:fixed;inset:0;background:rgba(0,0,0,0);
+  z-index:8999;transition:background .3s;
+}
+#sidebar-overlay.active{pointer-events:all;background:rgba(0,0,0,.35);}
+
+#sb-head{padding:1rem 1rem .6rem;border-bottom:1px solid var(--border);flex-shrink:0;}
+#sb-title{font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:.65rem;}
+#sb-search{position:relative;display:flex;align-items:center;}
+#sb-search input{
+  width:100%;padding:.48rem .75rem .48rem 2rem;
+  border:1.5px solid var(--border);border-radius:9px;
+  font-family:'Inter',sans-serif;font-size:.73rem;color:var(--dark);
+  background:var(--light);outline:none;transition:border-color .2s;
+}
+#sb-search input:focus{border-color:var(--accent2);}
+#sb-search-icon{position:absolute;left:.6rem;font-size:.75rem;pointer-events:none;color:var(--mid);}
+
+#sb-cats{
+  display:flex;overflow-x:auto;padding:.6rem .9rem;
+  scrollbar-width:none;flex-shrink:0;border-bottom:1px solid var(--border);
+}
+#sb-cats::-webkit-scrollbar{display:none;}
+.sb-cat{
+  flex-shrink:0;font-size:.62rem;font-weight:600;letter-spacing:.3px;
+  padding:.32rem .75rem;border-radius:99px;border:1.5px solid var(--border);
+  color:var(--mid);background:transparent;cursor:pointer;touch-action:manipulation;
+  transition:all .18s;margin-right:.35rem;white-space:nowrap;
+}
+.sb-cat.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+#sb-empty{display:none;text-align:center;padding:2rem 1rem;font-size:.72rem;color:var(--mid);}
+#sb-empty.show{display:block;}
+
+#sb-list{
+  flex:1;overflow-y:auto;padding:.55rem .75rem;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+#sb-list::-webkit-scrollbar{width:4px;}
+#sb-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+.sb-item{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.6rem .65rem;border-radius:10px;border:1.5px solid transparent;
+  cursor:pointer;touch-action:manipulation;transition:all .18s;
+  margin-bottom:.4rem;background:var(--light);
+}
+.sb-item:active{transform:scale(.97);}
+.sb-item.sel{border-color:var(--accent);background:rgba(45,106,79,.06);}
+
+.sb-img{
+  width:56px;height:56px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#f0ebe3,#e8e0d4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;position:relative;overflow:hidden;
+  border:1px solid rgba(0,0,0,.05);
+}
+.sb-img canvas{position:absolute;inset:0;width:100%!important;height:100%!important;border-radius:8px;}
+.sb-img-em{font-size:1.55rem;line-height:1;z-index:1;}
+.sb-surf-dot{
+  position:absolute;top:4px;right:4px;
+  width:7px;height:7px;border-radius:50%;z-index:2;border:1.5px solid #fff;
+}
+.sb-surf-dot.floor{background:var(--accent2);}
+.sb-surf-dot.wall{background:#F59E0B;}
+.sb-surf-dot.ceiling{background:#60A5FA;}
+
+.sb-info{flex:1;min-width:0;}
+.sb-name{font-size:.78rem;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-meta{display:flex;gap:.4rem;align-items:center;margin-top:.2rem;}
+.sb-price{font-size:.7rem;font-weight:700;color:var(--accent);}
+.sb-surf{font-size:.55rem;color:var(--mid);background:var(--border);border-radius:99px;padding:.1rem .4rem;font-weight:500;}
+.sb-dims{font-size:.58rem;color:var(--mid);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-sel-badge{
+  width:22px;height:22px;border-radius:50%;background:var(--accent);
+  color:#fff;font-size:.65rem;display:none;align-items:center;justify-content:center;
+  flex-shrink:0;font-weight:700;
+}
+.sb-item.sel .sb-sel-badge{display:flex;}
+
+#sb-footer{border-top:1px solid var(--border);padding:.7rem .9rem calc(env(safe-area-inset-bottom,0px)+.7rem);flex-shrink:0;background:#fff;}
+#sb-footer-content{display:none;}
+#sb-footer-content.show{display:block;}
+#sb-footer-none{font-size:.65rem;color:var(--mid);text-align:center;padding:.2rem 0;}
+#sb-sel-name{font-size:.8rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;}
+#sb-sel-actions{display:flex;gap:.4rem;}
+.sb-action-btn{
+  flex:1;border:none;border-radius:8px;padding:.45rem .5rem;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:.67rem;
+  cursor:pointer;touch-action:manipulation;transition:all .18s;
+}
+.sb-action-btn:active{transform:scale(.95);}
+#sb-btn-place{background:var(--accent);color:#fff;}
+#sb-btn-close-sel{background:var(--light);color:var(--dark);border:1px solid var(--border);}
+
+/* ── MODE BAR ────────────────────────────────────────────── */
+#mode-bar{
+  pointer-events:all;
+  position:absolute;top:3.4rem;left:50%;transform:translateX(-50%);
+  display:none;gap:0;background:var(--glass);backdrop-filter:blur(12px);
+  border-radius:99px;border:1px solid var(--border);overflow:hidden;
+  box-shadow:var(--shadow);
+}
+#mode-bar.show{display:flex;}
+.mbt{
+  font-size:.65rem;font-weight:600;letter-spacing:.3px;padding:.4rem 1.1rem;
+  border:none;background:transparent;color:var(--mid);cursor:pointer;touch-action:manipulation;transition:all .2s;
+}
+.mbt.on{background:var(--accent);color:#fff;}
+
+/* ── SCALE BAR ───────────────────────────────────────────── */
+#scale-bar{
+  pointer-events:all;
+  position:absolute;top:3.4rem;right:.75rem;
+  display:none;flex-direction:column;gap:.3rem;align-items:center;
+  background:var(--glass);backdrop-filter:blur(12px);
+  border-radius:var(--radius);border:1px solid var(--border);
+  padding:.5rem .4rem;box-shadow:var(--shadow);
+}
+#scale-bar.show{display:flex;}
+.scale-btn{
+  width:30px;height:30px;border-radius:7px;border:1px solid var(--border);
+  background:#fff;color:var(--dark);font-size:1rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;transition:all .18s;font-weight:700;
+}
+.scale-btn:active{transform:scale(.88);background:var(--accent);color:#fff;}
+#scale-val{font-size:.52rem;font-weight:700;color:var(--mid);letter-spacing:.5px;}
+
+/* ── SCAN UI ─────────────────────────────────────────────── */
+#scan-ui{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:.9rem;
+  opacity:0;transition:opacity .4s;
+}
+#scan-ui.show{opacity:1;}
+.scan-rings{position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center;}
+.sring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.7);animation:rp 2s ease-in-out infinite;}
+.sr1{width:28px;height:28px;}.sr2{width:50px;height:50px;animation-delay:.2s;opacity:.55;}.sr3{width:72px;height:72px;animation-delay:.4s;opacity:.25;}
+@keyframes rp{0%,100%{transform:scale(1);}50%{transform:scale(.88);opacity:.2;}}
+.scan-dot{width:8px;height:8px;border-radius:50%;background:#fff;}
+#scan-lbl{font-size:.65rem;color:rgba(255,255,255,.7);letter-spacing:1.5px;text-align:center;line-height:1.9;font-weight:500;}
+
+/* ── HINTS ───────────────────────────────────────────────── */
+#tap-hint,#grab-hint{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:.6rem;
+  opacity:0;transition:opacity .4s;
+}
+#tap-hint.show,#grab-hint.show{opacity:1;}
+.hint-ring{width:48px;height:48px;border-radius:50%;border:2px solid #fff;animation:ping 1.6s ease-out infinite;}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,255,255,.45);}70%{box-shadow:0 0 0 18px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+.hint-ring.green{border-color:var(--accent2);animation-name:ping-g;}
+@keyframes ping-g{0%{box-shadow:0 0 0 0 rgba(82,183,136,.5);}70%{box-shadow:0 0 0 18px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+.hint-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);font-size:1.2rem;}
+.hint-lbl{font-size:.6rem;color:rgba(255,255,255,.85);letter-spacing:1.5px;font-weight:600;text-align:center;}
+
+/* ── PRODUCT PANEL ───────────────────────────────────────── */
+#place-panel{
+  pointer-events:all;
+  position:absolute;bottom:9.5rem;left:.9rem;right:.9rem;display:none;
+  background:var(--glass);backdrop-filter:blur(14px);
+  border-radius:var(--radius);border:1px solid var(--border);
+  padding:.8rem 1rem;box-shadow:var(--shadow);
+}
+#place-panel.show{display:block;}
+#pp-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;}
+#pp-name{font-size:.9rem;font-weight:700;color:var(--dark);}
+#pp-price{font-size:1rem;font-weight:700;color:var(--accent);}
+#pp-dims{font-size:.62rem;color:var(--mid);margin-top:.15rem;}
+#pp-surface{font-size:.58rem;font-weight:600;border-radius:99px;padding:.18rem .55rem;border:1px solid;margin-top:.3rem;display:inline-block;}
+#pp-surface.floor{color:var(--accent);border-color:var(--accent2);background:rgba(82,183,136,.08);}
+#pp-surface.wall{color:#B45309;border-color:#F59E0B;background:rgba(245,158,11,.08);}
+#pp-surface.ceiling{color:#1D4ED8;border-color:#60A5FA;background:rgba(96,165,250,.08);}
+#pp-variants{display:flex;gap:.4rem;margin:.55rem 0 .6rem;}
+.vdot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid var(--border);transition:all .15s;touch-action:manipulation;}
+.vdot.on{border-color:var(--dark);box-shadow:0 0 0 2px rgba(0,0,0,.15);}
+#pp-actions{display:flex;gap:.5rem;}
+.pp-btn{
+  flex:1;border:none;border-radius:9px;padding:.55rem;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:.72rem;
+  cursor:pointer;touch-action:manipulation;transition:all .2s;
+}
+.pp-btn:active{transform:scale(.95);}
+#btn-add-cart{background:var(--accent);color:#fff;}
+#btn-wishlist{background:var(--light);color:var(--dark);border:1px solid var(--border);}
+#btn-wishlist.wished{background:#FFF0F0;color:#EF4444;border-color:#FCA5A5;}
+#btn-del-placed{background:rgba(239,68,68,.08);color:#EF4444;border:1px solid rgba(239,68,68,.2);}
+#rotate-hint{font-size:.58rem;color:var(--mid);text-align:center;margin-top:.5rem;}
+
+/* ── OBJECTS PANEL ───────────────────────────────────────── */
+#obj-panel{
+  pointer-events:all;
+  position:absolute;bottom:9.5rem;right:.9rem;
+  width:155px;max-height:210px;display:none;overflow-y:auto;
+  background:var(--glass);backdrop-filter:blur(14px);
+  border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+#obj-panel.show{display:block;}
+#obj-panel::-webkit-scrollbar{width:4px;}
+#obj-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+#obj-panel-head{
+  padding:.5rem .7rem .3rem;font-size:.58rem;font-weight:600;color:var(--mid);letter-spacing:.8px;
+  border-bottom:1px solid var(--border);position:sticky;top:0;
+  background:var(--glass);backdrop-filter:blur(10px);z-index:1;
+}
+.obj-item{
+  display:flex;align-items:center;gap:.4rem;padding:.4rem .65rem;
+  cursor:pointer;touch-action:manipulation;border-bottom:1px solid rgba(0,0,0,.04);transition:background .15s;
+}
+.obj-item:last-child{border-bottom:none;}
+.obj-item:active{background:rgba(0,0,0,.04);}
+.obj-item.grabbed{background:rgba(45,106,79,.08);}
+.obj-em{font-size:.9rem;flex-shrink:0;}
+.obj-name{font-size:.62rem;font-weight:500;color:var(--dark);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.obj-del{
+  width:18px;height:18px;border-radius:50%;background:rgba(239,68,68,.1);color:#EF4444;
+  font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  border:1px solid rgba(239,68,68,.2);cursor:pointer;touch-action:manipulation;transition:all .15s;
+}
+.obj-del:active{transform:scale(.85);background:#EF4444;color:#fff;}
+
+/* ── AR TRAY ─────────────────────────────────────────────── */
+#tray{
+  pointer-events:all;
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--glass);backdrop-filter:blur(14px);
+  border-top:1px solid var(--border);
+  padding:.65rem .9rem calc(env(safe-area-inset-bottom,0px)+.65rem);
+  display:none; /* hidden until AR starts */
+}
+#tray.show{display:block;}
+#tray-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;}
+#tray-label{font-size:.6rem;font-weight:600;color:var(--mid);letter-spacing:1px;}
+#tray-right{display:flex;gap:.5rem;align-items:center;}
+#obj-list-btn{
+  font-size:.6rem;font-weight:600;color:var(--mid);background:var(--light);
+  border:1px solid var(--border);border-radius:6px;padding:.22rem .6rem;
+  cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:.3rem;
+}
+#obj-list-btn.has-items{color:var(--dark);}
+#list-btn{
+  font-size:.6rem;font-weight:600;color:var(--accent);background:rgba(45,106,79,.08);
+  border:1px solid rgba(45,106,79,.2);border-radius:6px;padding:.22rem .6rem;
+  cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:.3rem;
+}
+#cards{display:flex;gap:.45rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.05rem;}
+#cards::-webkit-scrollbar{display:none;}
+.card{
+  flex-shrink:0;width:68px;background:#fff;border:1.5px solid var(--border);
+  border-radius:10px;padding:.4rem .3rem;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:.2rem;
+  touch-action:manipulation;transition:all .18s;
+}
+.card:active{transform:scale(.92);}
+.card.sel{border-color:var(--accent);background:rgba(45,106,79,.05);}
+.card .cem{font-size:1.25rem;line-height:1;}
+.card .cnm{font-size:.42rem;color:var(--mid);text-align:center;font-weight:500;line-height:1.3;}
+.card .cpr{font-size:.44rem;color:var(--accent);font-weight:700;}
+.card .cdot{width:5px;height:5px;border-radius:50%;}
+.card .cdot.floor{background:var(--accent2);}
+.card .cdot.wall{background:#F59E0B;}
+.card .cdot.ceiling{background:#60A5FA;}
+.card.sel .cnm{color:var(--accent);}
+
+/* ── RIGHT RAIL ──────────────────────────────────────────── */
+#rail{
+  pointer-events:all;
+  position:absolute;right:.75rem;top:50%;transform:translateY(-50%);
+  display:none;flex-direction:column;gap:.4rem;
+}
+#rail.show{display:flex;}
+.rb{
+  width:40px;height:40px;border-radius:10px;
+  border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(10px);
+  color:var(--dark);font-size:.85rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;transition:all .18s;flex-direction:column;gap:1px;
+}
+.rb:active{transform:scale(.9);}
+.rb-lbl{font-size:.35rem;color:var(--mid);font-weight:500;letter-spacing:.3px;}
+.rb.danger{color:#EF4444;}
+
+/* ── CART DRAWER ─────────────────────────────────────────── */
+#cart-drawer{
+  pointer-events:all;position:fixed;bottom:-100%;left:0;right:0;
+  background:#fff;border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;z-index:99999;
+  transition:bottom .3s cubic-bezier(.34,1.1,.64,1);
+  height:60vh;display:flex;flex-direction:column;
+}
+#cart-drawer.open{bottom:0;}
+#cart-drawer-inner{flex:1;overflow-y:auto;padding:0 1rem;}
+#cart-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:.75rem auto .9rem;}
+#cart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--border);}
+#cart-title{font-size:1rem;font-weight:700;color:var(--dark);}
+#cart-close{font-size:.65rem;color:var(--mid);cursor:pointer;padding:.2rem .5rem;border:1px solid var(--border);border-radius:6px;}
+.ci{display:flex;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(--border);}
+.ci-em{font-size:1.5rem;width:36px;text-align:center;flex-shrink:0;}
+.ci-info{flex:1;}
+.ci-name{font-size:.82rem;font-weight:600;color:var(--dark);}
+.ci-surface{font-size:.58rem;color:var(--mid);margin-top:.1rem;}
+.ci-price{font-size:.8rem;font-weight:700;color:var(--accent);margin-left:auto;flex-shrink:0;}
+.ci-rm{font-size:.75rem;color:#EF4444;cursor:pointer;padding:.1rem .3rem;margin-left:.5rem;flex-shrink:0;opacity:.7;}
+.ci-rm:active{opacity:1;}
+#cart-footer{padding:.75rem 1rem calc(env(safe-area-inset-bottom,0px)+.75rem);border-top:1px solid var(--border);flex-shrink:0;}
+#cart-total{display:flex;justify-content:space-between;margin-bottom:.65rem;}
+#cart-total-lbl{font-size:.82rem;color:var(--mid);font-weight:500;}
+#cart-total-val{font-size:1rem;font-weight:700;color:var(--dark);}
+#checkout-btn{
+  width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
+  padding:.75rem;font-family:'Inter',sans-serif;font-weight:700;font-size:.85rem;
+  cursor:pointer;touch-action:manipulation;transition:background .2s;
+}
+#checkout-btn:active{background:#1B4D38;}
+#cart-empty{font-size:.7rem;color:var(--mid);text-align:center;padding:1.5rem 0;letter-spacing:.5px;}
+
+/* ── FLASH / TOAST ───────────────────────────────────────── */
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9998;transition:opacity .04s;}
+#toast{
+  position:fixed;bottom:9.2rem;left:50%;transform:translateX(-50%) translateY(6px);
+  font-size:.65rem;font-weight:600;color:var(--dark);
+  background:#fff;border:1px solid var(--border);
+  border-radius:99px;padding:.38rem 1rem;white-space:nowrap;
+  pointer-events:none;z-index:99999;opacity:0;transition:all .22s;box-shadow:var(--shadow);
+}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div id="loader-logo">MIRA <span>HOME</span></div>
+  <div id="loader-sub">AR ZONE · FURNITURE PREVIEW</div>
+  <div id="loader-bar"><div id="loader-fill"></div></div>
+</div>
+
+<!-- ══ LANDING PAGE ══════════════════════════════════════════ -->
+<div id="landing">
+
+  <div id="landing-bar">
+    <div id="landing-logo">MIRA <span>HOME</span></div>
+    <div id="landing-badge">AR ZONE</div>
+  </div>
+
+  <!-- 3-D spinning preview fills the middle -->
+  <div id="preview-wrap">
+    <div id="preview-canvas-wrap"></div>
+    <div id="preview-tag">10 RATTAN FURNITURE PIECES</div>
+  </div>
+
+  <!-- Bottom intro sheet -->
+  <div id="landing-sheet">
+
+    <div id="landing-headline">See it in your<br>space before <span>you buy.</span></div>
+    <div id="landing-sub">Place true-to-scale 3D furniture in your room using your phone's camera. Move, rotate, resize — all in real time.</div>
+
+    <div id="steps">
+      <div class="step">
+        <div class="step-num">Step 1</div>
+        <div class="step-icon">📷</div>
+        <div class="step-title">Point &amp; scan</div>
+        <div class="step-desc">Slowly move your phone to detect floors, walls &amp; ceilings.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 2</div>
+        <div class="step-icon">🪑</div>
+        <div class="step-title">Choose a piece</div>
+        <div class="step-desc">Browse the catalog and select furniture to place.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 3</div>
+        <div class="step-icon">👆</div>
+        <div class="step-title">Tap to place</div>
+        <div class="step-desc">Tap any detected surface to drop the model into your room.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 4</div>
+        <div class="step-icon">✋</div>
+        <div class="step-title">Move &amp; rotate</div>
+        <div class="step-desc">Switch to Move mode, grab objects, swipe to rotate, pinch to scale.</div>
+      </div>
+    </div>
+
+    <button id="landing-cta">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      Start AR Experience
+    </button>
+
+    <div id="landing-req">Requires Android with ARCore · Chrome browser · Camera permission</div>
+
+  </div>
+</div><!-- /landing -->
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebar-overlay"></div>
+
+<!-- SIDEBAR (catalog — AR only) -->
+<div id="sidebar">
+  <div id="sb-head">
+    <div id="sb-title">🪑 Furniture Catalog</div>
+    <div id="sb-search">
+      <span id="sb-search-icon">🔍</span>
+      <input type="text" id="sb-search-input" placeholder="Search furniture…" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+  </div>
+  <div id="sb-cats">
+    <button class="sb-cat on" data-cat="all">All</button>
+    <button class="sb-cat" data-cat="floor">Floor</button>
+    <button class="sb-cat" data-cat="wall">Wall</button>
+    <button class="sb-cat" data-cat="ceiling">Ceiling</button>
+  </div>
+  <div id="sb-empty">No items found</div>
+  <div id="sb-list"></div>
+  <div id="sb-footer">
+    <div id="sb-footer-content">
+      <div id="sb-sel-name">—</div>
+      <div id="sb-sel-actions">
+        <button class="sb-action-btn" id="sb-btn-close-sel">✕ Deselect</button>
+        <button class="sb-action-btn" id="sb-btn-place">Place in AR →</button>
+      </div>
+    </div>
+    <div id="sb-footer-none">Tap an item to select it</div>
+  </div>
+</div>
+
+<!-- ══ AR HUD (all hidden until session starts) ══════════════ -->
+<div id="hud">
+
+  <!-- AR top bar -->
+  <div id="topbar" style="display:none;">
+    <button id="sidebar-toggle">☰</button>
+    <div id="logo">MIRA <span>HOME</span></div>
+    <div id="surf-pill"></div>
+  </div>
+
+  <!-- Mode bar -->
+  <div id="mode-bar">
+    <button class="mbt on" id="mb-place">Place</button>
+    <button class="mbt" id="mb-move">Move &amp; Rotate</button>
+  </div>
+
+  <!-- Scale bar -->
+  <div id="scale-bar">
+    <button class="scale-btn" id="scale-up">+</button>
+    <div id="scale-val">100%</div>
+    <button class="scale-btn" id="scale-dn">−</button>
+  </div>
+
+  <!-- Scan UI -->
+  <div id="scan-ui">
+    <div class="scan-rings">
+      <div class="sring sr3"></div><div class="sring sr2"></div><div class="sring sr1"></div>
+      <div class="scan-dot"></div>
+    </div>
+    <div id="scan-lbl">POINT AT A SURFACE<br>FLOOR · WALL · CEILING</div>
+  </div>
+
+  <!-- Tap hint -->
+  <div id="tap-hint">
+    <div style="position:relative;width:48px;height:48px;">
+      <div class="hint-ring green"></div>
+      <div class="hint-icon">👆</div>
+    </div>
+    <div class="hint-lbl">TAP TO PLACE</div>
+  </div>
+
+  <!-- Grab hint -->
+  <div id="grab-hint">
+    <div style="position:relative;width:48px;height:48px;">
+      <div class="hint-ring"></div>
+      <div class="hint-icon">✋</div>
+    </div>
+    <div class="hint-lbl">TAP OBJECT TO SELECT<br>SWIPE TO ROTATE</div>
+  </div>
+
+  <!-- Product panel -->
+  <div id="place-panel">
+    <div id="pp-top">
+      <div>
+        <div id="pp-name">—</div>
+        <div id="pp-dims">—</div>
+        <div id="pp-surface">—</div>
+      </div>
+      <div id="pp-price">—</div>
+    </div>
+    <div id="pp-variants"></div>
+    <div id="pp-actions">
+      <button class="pp-btn" id="btn-add-cart">🛒 Add to Cart</button>
+      <button class="pp-btn" id="btn-wishlist">♡ Save</button>
+      <button class="pp-btn" id="btn-del-placed">🗑</button>
+    </div>
+    <div id="rotate-hint" style="display:none;">↔ Swipe to rotate · Pinch to scale</div>
+  </div>
+
+  <!-- Placed objects panel -->
+  <div id="obj-panel">
+    <div id="obj-panel-head">PLACED OBJECTS</div>
+    <div id="obj-panel-list"></div>
+  </div>
+
+  <!-- Right rail -->
+  <div id="rail">
+    <div><button class="rb" id="rb-undo">↩<div class="rb-lbl">UNDO</div></button></div>
+    <div><button class="rb" id="rb-photo">📸<div class="rb-lbl">PHOTO</div></button></div>
+    <div><button class="rb danger" id="rb-del">🗑<div class="rb-lbl">DELETE</div></button></div>
+    <div><button class="rb danger" id="rb-clear">✕<div class="rb-lbl">CLEAR</div></button></div>
+  </div>
+
+  <!-- AR tray (furniture quick-select) -->
+  <div id="tray">
+    <div id="tray-header">
+      <div id="tray-label">QUICK SELECT</div>
+      <div id="tray-right">
+        <button id="obj-list-btn">📦 Objects <span id="pcnt">0</span></button>
+        <div id="list-btn">🛒 Cart <span id="cart-count">0</span></div>
+      </div>
+    </div>
+    <div id="cards"></div>
+  </div>
+
+</div><!-- /hud -->
+
+<!-- Cart drawer -->
+<div id="cart-drawer">
+  <div id="cart-drawer-inner">
+    <div id="cart-handle"></div>
+    <div id="cart-head">
+      <div id="cart-title">Cart</div>
+      <div id="cart-close">Close</div>
+    </div>
+    <div id="cart-items"><div id="cart-empty">No items yet</div></div>
+  </div>
+  <div id="cart-footer">
+    <div id="cart-total">
+      <div id="cart-total-lbl">Total</div>
+      <div id="cart-total-val">₱0</div>
+    </div>
+    <button id="checkout-btn">Proceed to Checkout →</button>
+  </div>
+</div>
+
+<div id="flash"></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+// ── CATALOG ──────────────────────────────────────────────────
+var CATALOG=[
+  {id:'sofa',      name:'Rattan Sofa',       price:8500, dims:'160×75×85 cm', surface:'floor',   category:'floor',   em:'🛋️', variants:['#C4956A','#8B6343','#D4B896'], fn:mkSofa},
+  {id:'armchair',  name:'Rattan Armchair',   price:3200, dims:'75×70×85 cm',  surface:'floor',   category:'floor',   em:'🪑', variants:['#C4956A','#8B6343','#5C3D1E'], fn:mkArmchair},
+  {id:'table',     name:'Coffee Table',      price:2800, dims:'110×55×45 cm', surface:'floor',   category:'floor',   em:'🪵', variants:['#C4956A','#8B6343'],           fn:mkCoffeeTable},
+  {id:'shelf',     name:'Floor Shelf',       price:3500, dims:'80×30×150 cm', surface:'floor',   category:'floor',   em:'📚', variants:['#C4956A','#8B6343','#D4B896'], fn:mkFloorShelf},
+  {id:'stool',     name:'Rattan Stool',      price:1200, dims:'40×40×45 cm',  surface:'floor',   category:'floor',   em:'🪑', variants:['#C4956A','#8B6343'],           fn:mkStool},
+  {id:'wallshelf', name:'Wall Shelf',        price:1800, dims:'60×20×15 cm',  surface:'wall',    category:'wall',    em:'🗄️', variants:['#C4956A','#8B6343','#D4B896'], fn:mkWallShelf},
+  {id:'wallclock', name:'Rattan Clock',      price:950,  dims:'40×5×40 cm',   surface:'wall',    category:'wall',    em:'🕐', variants:['#C4956A','#8B6343','#1a1a1a'], fn:mkWallClock},
+  {id:'mirror',    name:'Rattan Mirror',     price:2200, dims:'50×5×70 cm',   surface:'wall',    category:'wall',    em:'🪞', variants:['#C4956A','#8B6343'],           fn:mkWallMirror},
+  {id:'pendant',   name:'Pendant Lamp',      price:2400, dims:'40×40×60 cm',  surface:'ceiling', category:'ceiling', em:'💡', variants:['#C4956A','#8B6343','#fff8e7'], fn:mkPendantLamp},
+  {id:'hangplant', name:'Hanging Planter',   price:1100, dims:'25×25×35 cm',  surface:'ceiling', category:'ceiling', em:'🪴', variants:['#C4956A','#2d5a1b','#8B6343'], fn:mkHangingPlant},
+];
+
+// ── MATERIALS ────────────────────────────────────────────────
+var activeVC=null;
+function ratMat(c,r,m){return new THREE.MeshStandardMaterial({color:c||0xC4956A,roughness:r||.75,metalness:m||.05});}
+function cushMat(c){return new THREE.MeshStandardMaterial({color:c||0x8B7355,roughness:.9,metalness:0});}
+function getVC(def){return activeVC?parseInt(activeVC.replace('#','0x')):parseInt(def.replace('#','0x'));}
+
+// ── 3D BUILDERS ──────────────────────────────────────────────
+function mkSofa(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var base=new THREE.Mesh(new THREE.BoxGeometry(.55,.12,.28),ratMat(vc));base.position.y=.06;g.add(base);
+  var seat=new THREE.Mesh(new THREE.BoxGeometry(.52,.08,.24),cushMat(0xA0785A));seat.position.y=.14;g.add(seat);
+  var back=new THREE.Mesh(new THREE.BoxGeometry(.55,.3,.05),ratMat(vc));back.position.set(0,.24,-.115);g.add(back);
+  var bcush=new THREE.Mesh(new THREE.BoxGeometry(.5,.26,.04),cushMat(0xA0785A));bcush.position.set(0,.24,-.09);g.add(bcush);
+  [-1,1].forEach(function(s){var arm=new THREE.Mesh(new THREE.BoxGeometry(.05,.18,.28),ratMat(vc));arm.position.set(s*.3,.1,0);g.add(arm);});
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(p){var leg=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.06,6),ratMat(vc*.8));leg.position.set(p[0]*.25,.03,p[1]*.12);g.add(leg);});
+  return g;
+}
+function mkArmchair(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var base=new THREE.Mesh(new THREE.BoxGeometry(.28,.1,.26),ratMat(vc));base.position.y=.18;g.add(base);
+  var seat=new THREE.Mesh(new THREE.BoxGeometry(.25,.07,.22),cushMat(0x9B7B5B));seat.position.y=.245;g.add(seat);
+  var back=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.05),ratMat(vc));back.position.set(0,.33,-.105);g.add(back);
+  var bcush=new THREE.Mesh(new THREE.BoxGeometry(.24,.24,.04),cushMat(0x9B7B5B));bcush.position.set(0,.33,-.082);g.add(bcush);
+  [-1,1].forEach(function(s){var arm=new THREE.Mesh(new THREE.BoxGeometry(.04,.12,.26),ratMat(vc));arm.position.set(s*.15,.22,0);g.add(arm);});
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(p){var leg=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,.18,6),ratMat(vc));leg.position.set(p[0]*.12,.09,p[1]*.1);g.add(leg);});
+  return g;
+}
+function mkCoffeeTable(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var top=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.025,32),ratMat(vc));top.position.y=.155;g.add(top);
+  var glass=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.01,32),new THREE.MeshStandardMaterial({color:0xaaddff,transparent:true,opacity:.25,roughness:.05}));glass.position.y=.175;g.add(glass);
+  var barrel=new THREE.Mesh(new THREE.CylinderGeometry(.14,.16,.12,12,1,true),ratMat(vc));barrel.position.y=.06;g.add(barrel);
+  var bot=new THREE.Mesh(new THREE.TorusGeometry(.14,.015,8,24),ratMat(vc*.9));bot.rotation.x=Math.PI/2;bot.position.y=.015;g.add(bot);
+  return g;
+}
+function mkFloorShelf(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  [-1,1].forEach(function(s){var side=new THREE.Mesh(new THREE.BoxGeometry(.025,.5,.18),ratMat(vc));side.position.set(s*.14,.25,0);g.add(side);});
+  [0,.12,.28,.44,.5].forEach(function(y){var shelf=new THREE.Mesh(new THREE.BoxGeometry(.28,.015,.18),ratMat(vc*.9));shelf.position.y=y;g.add(shelf);});
+  var back=new THREE.Mesh(new THREE.BoxGeometry(.28,.5,.012),ratMat(vc*.85));back.position.set(0,.25,-.085);g.add(back);
+  return g;
+}
+function mkStool(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var top=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.06,16),ratMat(vc));top.position.y=.15;g.add(top);
+  var cush=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.04,16),cushMat(0x9B7B5B));cush.position.y=.2;g.add(cush);
+  for(var i=0;i<3;i++){var a=(i/3)*Math.PI*2;var leg=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.14,6),ratMat(vc));leg.position.set(Math.cos(a)*.07,.07,Math.sin(a)*.07);leg.rotation.z=Math.sin(a)*.15;leg.rotation.x=-Math.cos(a)*.15;g.add(leg);}
+  return g;
+}
+function mkWallShelf(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var board=new THREE.Mesh(new THREE.BoxGeometry(.24,.025,.12),ratMat(vc));board.position.y=.012;g.add(board);
+  var back=new THREE.Mesh(new THREE.BoxGeometry(.24,.1,.015),ratMat(vc*.85));back.position.set(0,.06,-.055);g.add(back);
+  [-1,1].forEach(function(s){var br=new THREE.Mesh(new THREE.BoxGeometry(.012,.06,.1),ratMat(vc*.8));br.position.set(s*.1,-.02,0);g.add(br);});
+  var pot=new THREE.Mesh(new THREE.CylinderGeometry(.018,.014,.04,8),new THREE.MeshStandardMaterial({color:0x7a5c3a,roughness:.9}));pot.position.set(.06,.04,0);g.add(pot);
+  return g;
+}
+function mkWallClock(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var frame=new THREE.Mesh(new THREE.TorusGeometry(.1,.022,12,40),ratMat(vc));frame.rotation.x=Math.PI/2;g.add(frame);
+  var face=new THREE.Mesh(new THREE.CircleGeometry(.078,32),new THREE.MeshStandardMaterial({color:0xfaf6f0,roughness:.8}));face.rotation.x=-Math.PI/2;face.position.y=.005;g.add(face);
+  var hHand=new THREE.Mesh(new THREE.BoxGeometry(.004,.045,.003),new THREE.MeshStandardMaterial({color:0x2a2a2a}));hHand.position.set(0,.009,0);hHand.rotation.z=.5;g.add(hHand);
+  var mHand=new THREE.Mesh(new THREE.BoxGeometry(.003,.065,.003),new THREE.MeshStandardMaterial({color:0x1a1a1a}));mHand.position.set(0,.009,0);mHand.rotation.z=-.8;g.add(mHand);
+  var dot=new THREE.Mesh(new THREE.SphereGeometry(.007,8,8),new THREE.MeshStandardMaterial({color:0xC4956A,metalness:.3}));dot.position.y=.01;g.add(dot);
+  return g;
+}
+function mkWallMirror(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var frame=new THREE.Mesh(new THREE.TorusGeometry(.12,.025,12,40),ratMat(vc));frame.rotation.x=Math.PI/2;frame.scale.set(1,1.4,1);g.add(frame);
+  var mirror=new THREE.Mesh(new THREE.CircleGeometry(.094,32),new THREE.MeshStandardMaterial({color:0xc8e8f0,metalness:.85,roughness:.05,transparent:true,opacity:.7}));mirror.rotation.x=-Math.PI/2;mirror.scale.set(1,1.4,1);mirror.position.y=.005;g.add(mirror);
+  var cord=new THREE.Mesh(new THREE.CylinderGeometry(.004,.004,.06,4),ratMat(0x5a3d1a));cord.position.set(0,.175,0);g.add(cord);
+  return g;
+}
+function mkPendantLamp(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  var cord=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.18,6),ratMat(0x3a2a1a));cord.position.y=-.09;g.add(cord);
+  var shade=new THREE.Mesh(new THREE.SphereGeometry(.14,16,8,0,Math.PI*2,0,Math.PI*.6),ratMat(vc));shade.rotation.x=Math.PI;shade.position.y=-.22;g.add(shade);
+  var bulb=new THREE.Mesh(new THREE.SphereGeometry(.04,12,12),new THREE.MeshStandardMaterial({color:0xfff5cc,emissive:0xffd97a,emissiveIntensity:.8,roughness:.5}));bulb.position.y=-.2;g.add(bulb);
+  var ring=new THREE.Mesh(new THREE.TorusGeometry(.1,.01,6,24),ratMat(vc*.8));ring.rotation.x=Math.PI/2;ring.position.y=-.31;g.add(ring);
+  return g;
+}
+function mkHangingPlant(){
+  var g=new THREE.Group(),vc=getVC('#C4956A');
+  for(var i=0;i<3;i++){var a=(i/3)*Math.PI*2;var cord=new THREE.Mesh(new THREE.CylinderGeometry(.004,.004,.15,4),ratMat(0x5a3d1a));cord.position.set(Math.cos(a)*.055,-.075,Math.sin(a)*.055);g.add(cord);}
+  var basket=new THREE.Mesh(new THREE.SphereGeometry(.09,12,8,0,Math.PI*2,0,Math.PI*.65),ratMat(vc));basket.rotation.x=Math.PI;basket.position.y=-.2;g.add(basket);
+  var plant=new THREE.Mesh(new THREE.SphereGeometry(.1,10,8),new THREE.MeshStandardMaterial({color:0x3a7a2a,roughness:.95}));plant.scale.set(1,.7,1);plant.position.y=-.12;g.add(plant);
+  var soil=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.02,12),new THREE.MeshStandardMaterial({color:0x3d2b1a,roughness:1}));soil.position.y=-.17;g.add(soil);
+  return g;
+}
+
+// ── HIGHLIGHT ────────────────────────────────────────────────
+function setHL(obj,on){
+  obj.traverse(function(c){
+    if(!c.isMesh)return;
+    if(on){
+      if(!c.userData._oe){c.userData._oe=c.material.emissive?c.material.emissive.clone():new THREE.Color(0,0,0);c.userData._oi=c.material.emissiveIntensity||0;}
+      c.material=c.material.clone();c.material.emissive=new THREE.Color(0x2D6A4F);c.material.emissiveIntensity=.3;
+    }else{
+      if(c.userData._oe){c.material=c.material.clone();c.material.emissive=c.userData._oe;c.material.emissiveIntensity=c.userData._oi;}
+    }
+  });
+}
+
+// ── PRICE LABEL ──────────────────────────────────────────────
+function makePriceLabel(name,price){
+  var canvas=document.createElement('canvas');canvas.width=256;canvas.height=80;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='rgba(255,255,255,0.92)';ctx.roundRect(4,4,248,72,14);ctx.fill();
+  ctx.fillStyle='#2D6A4F';ctx.font='bold 22px Inter,Arial';ctx.textAlign='center';ctx.fillText(name,128,32);
+  ctx.fillStyle='#111827';ctx.font='bold 26px Inter,Arial';ctx.fillText('₱'+price.toLocaleString(),128,64);
+  var tex=new THREE.CanvasTexture(canvas);
+  var mat=new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true});
+  var sprite=new THREE.Sprite(mat);sprite.scale.set(.32,.1,1);return sprite;
+}
+
+// ── STATE ────────────────────────────────────────────────────
+var scene,camera,renderer;
+var reticleFloor,reticleWall,reticleCeiling;
+var selId=null;
+var placed=[];
+var placedCounter=0;
+var mode='place';
+var grabbedEntry=null;
+var lastEntry=null;
+var userScale=1.0;
+var surfaceFound=false;
+var lastSurfType='floor';
+var lastHitPos=null,lastHitMat4=null;
+var xrSession=null,xrRefSpace=null;
+var hitSrcCenter=null,hitSrcDown=null,hitSrcUp=null;
+var cart=[];
+var wishSet={};
+var touchStartX=0,touchStartY=0,touchRotating=false,touchMoved=false;
+var pinchStartDist=0,pinchActive=false,pinchStartScale=1;
+var prevObjs=[],prevActive=false,prevRAF=null;
+
+// ── SCENE ────────────────────────────────────────────────────
+function initScene(){
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.005,50);
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.xr.enabled=true;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.domElement.style.cssText='position:fixed;inset:0;z-index:1;';
+  // Insert canvas BEFORE the landing page so landing sits on top
+  document.body.insertBefore(renderer.domElement,document.getElementById('landing'));
+  scene.add(new THREE.AmbientLight(0xffffff,.8));
+  var sun=new THREE.DirectionalLight(0xffffff,1.1);sun.position.set(2,4,2);sun.castShadow=true;scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x888888,.4));
+  buildReticles();
+  window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+  document.addEventListener('touchstart',onTouchStart,{passive:true});
+  document.addEventListener('touchmove',onTouchMove,{passive:true});
+  document.addEventListener('touchend',onTouchEnd,{passive:true});
+}
+
+function makeReticle(color){
+  var g=new THREE.Group();g.matrixAutoUpdate=false;g.visible=false;
+  g.add(new THREE.Mesh(new THREE.RingGeometry(.07,.085,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:color,side:THREE.DoubleSide,depthWrite:false})));
+  g.add(new THREE.Mesh(new THREE.CircleGeometry(.01,20).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:color,side:THREE.DoubleSide,depthWrite:false})));
+  var blob=new THREE.Mesh(new THREE.CircleGeometry(.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.16,side:THREE.DoubleSide,depthWrite:false}));blob.position.y=-.001;g.add(blob);
+  scene.add(g);return g;
+}
+function buildReticles(){
+  reticleFloor=makeReticle(0x52B788);
+  reticleWall=makeReticle(0xF59E0B);
+  reticleCeiling=makeReticle(0x60A5FA);
+}
+function hideReticles(){reticleFloor.visible=false;reticleWall.visible=false;reticleCeiling.visible=false;}
+
+// ── PREVIEW (landing background) ─────────────────────────────
+function startPreview(){
+  prevActive=true;
+  CATALOG.forEach(function(m,i){
+    var obj=m.fn();
+    var a=(i/CATALOG.length)*Math.PI*2;
+    obj.position.set(Math.cos(a)*1.4,-.45,Math.sin(a)*1.4-4.5);
+    obj.scale.setScalar(.7);scene.add(obj);prevObjs.push(obj);
+  });
+  camera.position.set(0,0,0);camera.lookAt(0,-.45,-4.5);
+  var t=0;
+  function loop(){
+    if(!prevActive)return;
+    prevRAF=requestAnimationFrame(loop);
+    t+=.004;
+    prevObjs.forEach(function(o,i){o.rotation.y+=.008;o.position.y=-.45+Math.sin(t+i*.7)*.07;});
+    renderer.render(scene,camera);
+  }
+  loop();
+}
+function stopPreview(){
+  prevActive=false;
+  if(prevRAF){cancelAnimationFrame(prevRAF);prevRAF=null;}
+  prevObjs.forEach(function(o){scene.remove(o);});prevObjs=[];
+}
+
+// ── AR SESSION ───────────────────────────────────────────────
+function enterAR(){
+  if(!navigator.xr){toast('WebXR not supported');return;}
+  navigator.xr.requestSession('immersive-ar',{
+    requiredFeatures:['hit-test'],
+    optionalFeatures:['dom-overlay'],
+    domOverlay:{root:document.getElementById('hud')}
+  }).then(function(session){
+    xrSession=session;
+    renderer.xr.setReferenceSpaceType('local');
+    renderer.xr.setSession(session).then(function(){
+      session.requestReferenceSpace('local').then(function(ls){
+        xrRefSpace=ls;
+        session.requestReferenceSpace('viewer').then(function(vs){
+          var ready=0;
+          function tryReady(){ready++;if(ready===3)onARReady(session);}
+          try{
+            session.requestHitTestSource({space:vs,offsetRay:new XRRay({x:0,y:0,z:0,w:1},{x:0,y:0,z:-1,w:0})}).then(function(s){hitSrcCenter=s;tryReady();}).catch(tryReady);
+            session.requestHitTestSource({space:vs,offsetRay:new XRRay({x:0,y:0,z:0,w:1},{x:0,y:-.766,z:-.643,w:0})}).then(function(s){hitSrcDown=s;tryReady();}).catch(tryReady);
+            session.requestHitTestSource({space:vs,offsetRay:new XRRay({x:0,y:0,z:0,w:1},{x:0,y:.766,z:-.643,w:0})}).then(function(s){hitSrcUp=s;tryReady();}).catch(tryReady);
+          }catch(e){
+            session.requestHitTestSource({space:vs}).then(function(s){hitSrcCenter=s;hitSrcDown=null;hitSrcUp=null;onARReady(session);}).catch(function(e2){toast('Hit-test error: '+e2.message);session.end();});
+          }
+        });
+      });
+    });
+  }).catch(function(e){toast('Could not start AR: '+e.message);});
+}
+
+function onARReady(session){
+  session.addEventListener('end',onSessionEnd);
+  session.addEventListener('select',onTap);
+  stopPreview();
+  // Hide landing, show AR HUD
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('tray').classList.add('show');
+  document.getElementById('rail').classList.add('show');
+  document.getElementById('mode-bar').classList.add('show');
+  document.getElementById('scale-bar').classList.add('show');
+  setModeUI('place');
+  showScan(true);showTapHint(false);showGrabHint(false);
+  renderer.setAnimationLoop(arLoop);
+}
+
+function onSessionEnd(){
+  renderer.setAnimationLoop(null);
+  if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
+  hitSrcCenter=hitSrcDown=hitSrcUp=null;xrRefSpace=null;xrSession=null;
+  lastHitPos=null;surfaceFound=false;
+  hideReticles();
+  // Hide AR HUD, show landing
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('tray').classList.remove('show');
+  document.getElementById('rail').classList.remove('show');
+  document.getElementById('mode-bar').classList.remove('show');
+  document.getElementById('scale-bar').classList.remove('show');
+  document.getElementById('landing').classList.remove('hidden');
+  setSurfPill('');hidePanel();
+  showScan(false);showTapHint(false);showGrabHint(false);
+  startPreview();
+}
+
+// ── SURFACE CLASSIFY ─────────────────────────────────────────
+function classify(m){var ny=m[5];if(ny>0.35)return 'floor';if(ny<-0.35)return 'ceiling';return 'wall';}
+
+// ── AR LOOP ──────────────────────────────────────────────────
+function arLoop(ts,frame){
+  if(!frame){renderer.render(scene,camera);return;}
+  var camDir=new THREE.Vector3();camera.getWorldDirection(camDir);
+  var camPos=new THREE.Vector3();camera.getWorldPosition(camPos);
+  var bestPos=null,bestMat=null,bestType=null,bestScore=-999;
+  function evalSrc(src){
+    if(!src||!xrRefSpace)return;
+    var hits=frame.getHitTestResults(src);if(!hits.length)return;
+    var pose=hits[0].getPose(xrRefSpace);if(!pose)return;
+    var m=pose.transform.matrix;var type=classify(m);
+    var pos=new THREE.Vector3(m[12],m[13],m[14]);
+    var toHit=new THREE.Vector3().subVectors(pos,camPos).normalize();
+    var score=toHit.dot(camDir);
+    if(camDir.y>0.3&&type==='ceiling')score+=.5;
+    else if(camDir.y<-0.3&&type==='floor')score+=.5;
+    else if(Math.abs(camDir.y)<0.3&&type==='wall')score+=.3;
+    if(score>bestScore){bestScore=score;bestPos=pos;bestMat=m;bestType=type;}
+  }
+  evalSrc(hitSrcCenter);evalSrc(hitSrcDown);evalSrc(hitSrcUp);
+  if(bestPos&&bestType){
+    lastHitPos=bestPos;lastSurfType=bestType;lastHitMat4=new THREE.Matrix4().fromArray(bestMat);
+    var activeR=bestType==='floor'?reticleFloor:bestType==='wall'?reticleWall:reticleCeiling;
+    hideReticles();
+    if(mode==='place'||(mode==='move'&&grabbedEntry)){activeR.visible=true;activeR.matrix.fromArray(bestMat);}
+    setSurfPill(bestType);
+    if(mode==='move'&&grabbedEntry){
+      grabbedEntry.obj.position.copy(bestPos);grabbedEntry.baseY=bestPos.y;grabbedEntry.surfType=bestType;
+      if(grabbedEntry.label)grabbedEntry.label.position.set(bestPos.x,bestPos.y+.35,bestPos.z);
+    }
+    if(!surfaceFound){
+      surfaceFound=true;showScan(false);
+      if(mode==='place'){showTapHint(true);}
+      else if(!grabbedEntry){showGrabHint(true);}
+    }
+  }else{
+    hideReticles();lastHitPos=null;
+    if(surfaceFound){surfaceFound=false;showTapHint(false);showGrabHint(false);showScan(true);}
+  }
+  var t=ts*.001;
+  placed.forEach(function(e,i){
+    if(e===grabbedEntry)return;
+    if(e.surfType==='floor')e.obj.position.y=e.baseY+Math.sin(t*1.1+i*.8)*.008;
+    if(e.label)e.label.visible=(mode==='move');
+  });
+  if(grabbedEntry&&grabbedEntry.label)grabbedEntry.label.visible=true;
+  renderer.render(scene,camera);
+}
+
+// ── TAP ──────────────────────────────────────────────────────
+function onTap(){
+  if(document.getElementById('cart-drawer').classList.contains('open'))return;
+  if(touchMoved){touchMoved=false;return;}
+  if(mode==='place')doPlace();else doGrab();
+}
+
+function doPlace(){
+  if(!selId){toast('Select a furniture item first');return;}
+  if(!lastHitPos){toast('No surface detected — keep scanning');return;}
+  var def=CATALOG.find(function(m){return m.id===selId;});if(!def)return;
+  activeVC=def.variants[def._selVariant||0]||null;var obj=def.fn();activeVC=null;
+  obj.position.copy(lastHitPos);obj.userData.baseY=lastHitPos.y;
+  obj.rotation.set(0,0,0);
+  if(lastSurfType==='wall'&&lastHitMat4){
+    var mel=lastHitMat4.elements;
+    var n=new THREE.Vector3(mel[4],mel[5],mel[6]).normalize();
+    obj.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),n));
+  }else if(lastSurfType==='ceiling'){obj.rotation.set(Math.PI,0,0);}
+  obj.scale.setScalar(userScale);
+  var lbl=makePriceLabel(def.name,def.price);
+  lbl.position.set(lastHitPos.x,lastHitPos.y+.35,lastHitPos.z);lbl.visible=false;
+  scene.add(lbl);scene.add(obj);
+  var entry={obj:obj,def:def,label:lbl,baseY:lastHitPos.y,surfType:lastSurfType,userRot:0,scale:userScale,uid:++placedCounter};
+  placed.push(entry);lastEntry=entry;updateCount();rebuildObjPanel();
+  var sv=0,tgt=userScale;
+  var iv=setInterval(function(){sv=Math.min(sv+.07,1);obj.scale.setScalar(tgt*(1-Math.pow(1-sv,3)));if(sv>=1)clearInterval(iv);},14);
+  showPanel(entry);toast(def.em+' '+def.name+' placed!');
+}
+
+function doGrab(){
+  if(grabbedEntry){dropGrabbed();return;}
+  if(!placed.length){toast('No furniture placed yet');return;}
+  var camPos=new THREE.Vector3();var camDir=new THREE.Vector3();
+  camera.getWorldPosition(camPos);camera.getWorldDirection(camDir);
+  var best=null,bestSc=Infinity;
+  placed.forEach(function(e){
+    var toObj=new THREE.Vector3().subVectors(e.obj.position,camPos);
+    var dist=toObj.length();if(dist<.05)return;
+    toObj.normalize();var dot=toObj.dot(camDir);if(dot<.3)return;
+    var sc=Math.acos(Math.min(1,dot))*3+dist*.05;
+    if(sc<bestSc){bestSc=sc;best=e;}
+  });
+  if(!best){toast('Point your camera at a furniture item');return;}
+  selectEntry(best);
+}
+
+function selectEntry(entry){
+  if(grabbedEntry&&grabbedEntry!==entry)setHL(grabbedEntry.obj,false);
+  grabbedEntry=entry;lastEntry=entry;
+  setHL(entry.obj,true);showGrabHint(false);showPanel(entry);rebuildObjPanel();
+  if(mode==='move')toast('✋ '+entry.def.name+' grabbed');
+  else toast('Selected: '+entry.def.name);
+}
+
+function dropGrabbed(){
+  if(!grabbedEntry)return;
+  setHL(grabbedEntry.obj,false);grabbedEntry=null;
+  showGrabHint(surfaceFound);hidePanel();rebuildObjPanel();toast('Placed ✓');
+}
+
+function deleteEntry(entry){
+  if(!entry)return;
+  if(grabbedEntry===entry){setHL(entry.obj,false);grabbedEntry=null;}
+  scene.remove(entry.obj);if(entry.label)scene.remove(entry.label);
+  var idx=placed.indexOf(entry);if(idx>=0)placed.splice(idx,1);
+  if(lastEntry===entry)lastEntry=placed[placed.length-1]||null;
+  updateCount();rebuildObjPanel();hidePanel();
+  if(mode==='move'&&surfaceFound)showGrabHint(true);
+  toast('🗑 '+entry.def.name+' deleted');
+}
+
+// ── TOUCH ────────────────────────────────────────────────────
+function onTouchStart(e){
+  if(e.target.closest('#tray')||e.target.closest('#place-panel')||e.target.closest('#rail')||e.target.closest('#topbar')||e.target.closest('#mode-bar')||e.target.closest('#cart-drawer')||e.target.closest('#sidebar')||e.target.closest('#obj-panel')||e.target.closest('#scale-bar')||e.target.closest('#landing'))return;
+  if(e.touches.length===2){
+    pinchActive=true;touchRotating=false;
+    var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+    pinchStartDist=Math.sqrt(dx*dx+dy*dy);
+    pinchStartScale=mode==='move'&&grabbedEntry?grabbedEntry.scale:userScale;
+  }else{
+    touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;
+    touchRotating=true;touchMoved=false;pinchActive=false;
+  }
+}
+function onTouchMove(e){
+  if(e.touches.length===2&&pinchActive){
+    var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+    var dist=Math.sqrt(dx*dx+dy*dy),ratio=dist/pinchStartDist;
+    var newScale=Math.max(.2,Math.min(3,pinchStartScale*ratio));
+    if(mode==='move'&&grabbedEntry){grabbedEntry.scale=newScale;grabbedEntry.obj.scale.setScalar(newScale);}
+    else{userScale=newScale;updateScaleVal();}
+    touchMoved=true;return;
+  }
+  if(!touchRotating)return;
+  var dx=e.touches[0].clientX-touchStartX;
+  if(Math.abs(dx)>6){
+    touchMoved=true;
+    if(mode==='move'&&grabbedEntry){grabbedEntry.obj.rotation.y+=dx*.012;grabbedEntry.userRot+=dx*.012;}
+  }
+  touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;
+}
+function onTouchEnd(){touchRotating=false;pinchActive=false;}
+
+// ── PRODUCT PANEL ────────────────────────────────────────────
+function showPanel(entry){
+  var d=entry.def;
+  document.getElementById('pp-name').textContent=d.name;
+  document.getElementById('pp-price').textContent='₱'+d.price.toLocaleString();
+  document.getElementById('pp-dims').textContent='📐 '+d.dims;
+  var sp=document.getElementById('pp-surface');
+  sp.textContent={floor:'▭ Floor',wall:'▮ Wall',ceiling:'▭ Ceiling'}[entry.surfType];
+  sp.className=entry.surfType;
+  var vrow=document.getElementById('pp-variants');vrow.innerHTML='';
+  d.variants.forEach(function(c,i){
+    var dot=document.createElement('div');dot.className='vdot'+(i===(d._selVariant||0)?' on':'');
+    dot.style.background=c;
+    dot.addEventListener('click',function(){
+      d._selVariant=i;
+      document.querySelectorAll('.vdot').forEach(function(v,vi){v.classList.toggle('on',vi===i);});
+      var oldObj=entry.obj;activeVC=c;var newObj=d.fn();activeVC=null;
+      newObj.position.copy(oldObj.position);newObj.rotation.copy(oldObj.rotation);newObj.scale.copy(oldObj.scale);
+      newObj.userData.baseY=oldObj.userData.baseY;
+      scene.remove(oldObj);scene.add(newObj);entry.obj=newObj;
+      if(grabbedEntry===entry)setHL(newObj,true);
+      toast('Color changed');
+    });
+    vrow.appendChild(dot);
+  });
+  var wb=document.getElementById('btn-wishlist');
+  wb.className='pp-btn'+(wishSet[d.id]?' wished':'');
+  wb.textContent=wishSet[d.id]?'♥ Saved':'♡ Save';
+  document.getElementById('rotate-hint').style.display=mode==='move'?'block':'none';
+  document.getElementById('place-panel').classList.add('show');
+}
+function hidePanel(){document.getElementById('place-panel').classList.remove('show');}
+
+// ── OBJECTS PANEL ─────────────────────────────────────────────
+function rebuildObjPanel(){
+  var list=document.getElementById('obj-panel-list');list.innerHTML='';
+  if(!placed.length){
+    var emp=document.createElement('div');emp.style.cssText='padding:.65rem;font-size:.65rem;color:#6B7280;text-align:center;';emp.textContent='No objects placed yet';
+    list.appendChild(emp);document.getElementById('obj-list-btn').classList.remove('has-items');return;
+  }
+  document.getElementById('obj-list-btn').classList.add('has-items');
+  placed.forEach(function(entry){
+    var row=document.createElement('div');row.className='obj-item'+(entry===grabbedEntry?' grabbed':'');
+    row.innerHTML='<span class="obj-em">'+entry.def.em+'</span><span class="obj-name">'+entry.def.name+'</span><span class="obj-del">✕</span>';
+    row.querySelector('.obj-del').addEventListener('click',function(ev){ev.stopPropagation();deleteEntry(entry);});
+    row.addEventListener('click',function(){
+      if(mode==='move')selectEntry(entry);else{lastEntry=entry;showPanel(entry);}
+      document.getElementById('obj-panel').classList.remove('show');
+    });
+    list.appendChild(row);
+  });
+}
+function toggleObjPanel(){rebuildObjPanel();document.getElementById('obj-panel').classList.toggle('show');}
+
+// ── MODE ─────────────────────────────────────────────────────
+function setModeUI(m){
+  mode=m;
+  document.getElementById('mb-place').classList.toggle('on',m==='place');
+  document.getElementById('mb-move').classList.toggle('on',m==='move');
+  if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
+  hidePanel();hideReticles();
+  placed.forEach(function(e){if(e.label)e.label.visible=(m==='move');});
+  rebuildObjPanel();
+  if(m==='place'){
+    showGrabHint(false);
+    if(surfaceFound)showTapHint(true);else showScan(true);
+  }else{
+    showTapHint(false);
+    if(surfaceFound)showGrabHint(true);else showScan(true);
+  }
+}
+
+// ── SCALE ─────────────────────────────────────────────────────
+function updateScaleVal(){document.getElementById('scale-val').textContent=Math.round(userScale*100)+'%';}
+function changeScale(delta){
+  if(mode==='move'&&grabbedEntry){
+    grabbedEntry.scale=Math.max(.2,Math.min(3,grabbedEntry.scale+delta));
+    grabbedEntry.obj.scale.setScalar(grabbedEntry.scale);
+    toast('Scale: '+Math.round(grabbedEntry.scale*100)+'%');
+  }else{
+    userScale=Math.max(.2,Math.min(3,userScale+delta));
+    updateScaleVal();toast('Placement scale: '+Math.round(userScale*100)+'%');
+  }
+}
+
+// ── CART ─────────────────────────────────────────────────────
+function addToCart(entry){
+  if(!entry)return;
+  cart.push({def:entry.def,uid:Date.now()});updateCartCount();
+  toast('🛒 '+entry.def.name+' added to cart!');
+}
+function removeFromCart(uid){
+  var idx=cart.findIndex(function(c){return c.uid===uid;});
+  if(idx>=0)cart.splice(idx,1);updateCartCount();openCart();
+}
+function updateCartCount(){document.getElementById('cart-count').textContent=cart.length;}
+function openCart(){
+  var wrap=document.getElementById('cart-items');
+  if(!cart.length){wrap.innerHTML='<div id="cart-empty">No items yet</div>';document.getElementById('cart-total-val').textContent='₱0';document.getElementById('cart-drawer').classList.add('open');return;}
+  wrap.innerHTML='';var total=0;
+  cart.forEach(function(c){
+    var d=c.def;total+=d.price;
+    var item=document.createElement('div');item.className='ci';
+    item.innerHTML='<div class="ci-em">'+d.em+'</div><div class="ci-info"><div class="ci-name">'+d.name+'</div><div class="ci-surface">'+{floor:'Floor',wall:'Wall',ceiling:'Ceiling'}[d.surface]+'</div></div><div class="ci-price">₱'+d.price.toLocaleString()+'</div><div class="ci-rm" data-uid="'+c.uid+'">✕</div>';
+    item.querySelector('.ci-rm').addEventListener('click',function(){removeFromCart(c.uid);});
+    wrap.appendChild(item);
+  });
+  document.getElementById('cart-total-val').textContent='₱'+total.toLocaleString();
+  document.getElementById('cart-drawer').classList.add('open');
+}
+function toggleWish(entry){
+  if(!entry)return;
+  var id=entry.def.id;wishSet[id]=!wishSet[id];
+  var wb=document.getElementById('btn-wishlist');
+  wb.className='pp-btn'+(wishSet[id]?' wished':'');
+  wb.textContent=wishSet[id]?'♥ Saved':'♡ Save';
+  toast(wishSet[id]?'Saved to wishlist':'Removed from wishlist');
+}
+
+// ── SCREENSHOT ────────────────────────────────────────────────
+function takeShot(){
+  var fl=document.getElementById('flash');fl.style.opacity='1';setTimeout(function(){fl.style.opacity='0';},80);
+  setTimeout(function(){
+    try{var url=renderer.domElement.toDataURL('image/png');var a=document.createElement('a');a.href=url;a.download='mira-ar.png';a.click();toast('Photo saved!');}
+    catch(e){toast('Screenshot saved to gallery');}
+  },60);
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function showScan(v){document.getElementById('scan-ui').classList.toggle('show',v);}
+function showTapHint(v){document.getElementById('tap-hint').classList.toggle('show',v);}
+function showGrabHint(v){document.getElementById('grab-hint').classList.toggle('show',v);}
+function setSurfPill(type){
+  var el=document.getElementById('surf-pill');
+  if(!type){el.className='';el.classList.remove('show');el.textContent='';return;}
+  el.className=type;el.classList.add('show');
+  el.textContent={floor:'Floor',wall:'Wall',ceiling:'Ceiling'}[type]||'';
+}
+function updateCount(){document.getElementById('pcnt').textContent=placed.length;}
+var toastT;
+function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){el.classList.remove('on');},2600);}
+
+// ── BUILD TRAY ────────────────────────────────────────────────
+function buildTray(){
+  var wrap=document.getElementById('cards');
+  CATALOG.forEach(function(def){
+    var card=document.createElement('div');card.className='card';card.dataset.id=def.id;
+    card.innerHTML='<div class="cem">'+def.em+'</div><div class="cnm">'+def.name+'</div><div class="cpr">₱'+def.price.toLocaleString()+'</div><div class="cdot '+def.surface+'"></div>';
+    card.addEventListener('click',function(){selectCatalogItem(def.id);});
+    wrap.appendChild(card);
+  });
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────
+var sbCatFilter='all',sbSearchQuery='';
+
+function buildSidebar(){
+  var list=document.getElementById('sb-list');list.innerHTML='';
+  var filtered=CATALOG.filter(function(def){
+    var catOk=(sbCatFilter==='all'||def.category===sbCatFilter);
+    var searchOk=!sbSearchQuery||def.name.toLowerCase().indexOf(sbSearchQuery)>=0||def.surface.toLowerCase().indexOf(sbSearchQuery)>=0;
+    return catOk&&searchOk;
+  });
+  var empty=document.getElementById('sb-empty');
+  if(!filtered.length){empty.classList.add('show');return;}
+  empty.classList.remove('show');
+  filtered.forEach(function(def){
+    var item=document.createElement('div');item.className='sb-item'+(def.id===selId?' sel':'');item.dataset.id=def.id;
+    var imgDiv=document.createElement('div');imgDiv.className='sb-img';
+    var emSpan=document.createElement('span');emSpan.className='sb-img-em';emSpan.textContent=def.em;imgDiv.appendChild(emSpan);
+    var sdot=document.createElement('div');sdot.className='sb-surf-dot '+def.surface;imgDiv.appendChild(sdot);
+    var info=document.createElement('div');info.className='sb-info';
+    info.innerHTML='<div class="sb-name">'+def.name+'</div><div class="sb-meta"><span class="sb-price">₱'+def.price.toLocaleString()+'</span><span class="sb-surf">'+(def.surface.charAt(0).toUpperCase()+def.surface.slice(1))+'</span></div><div class="sb-dims">'+def.dims+'</div>';
+    var badge=document.createElement('div');badge.className='sb-sel-badge';badge.textContent='✓';
+    item.appendChild(imgDiv);item.appendChild(info);item.appendChild(badge);
+    item.addEventListener('click',function(){selectCatalogItem(def.id);});
+    list.appendChild(item);
+    renderMiniPreview(def,imgDiv,emSpan);
+  });
+}
+
+function renderMiniPreview(def,container,emSpan){
+  try{
+    var mini=document.createElement('canvas');mini.width=112;mini.height=112;
+    var mr=new THREE.WebGLRenderer({canvas:mini,antialias:true,alpha:true});
+    mr.setPixelRatio(1);mr.setSize(56,56);mr.setClearColor(0x000000,0);
+    var ms=new THREE.Scene();ms.add(new THREE.AmbientLight(0xffffff,1));
+    var dl=new THREE.DirectionalLight(0xffffff,1.2);dl.position.set(2,4,3);ms.add(dl);
+    var mc=new THREE.PerspectiveCamera(45,1,.01,50);
+    activeVC=def.variants[0]||null;var obj=def.fn();activeVC=null;
+    var box=new THREE.Box3().setFromObject(obj);var size=new THREE.Vector3();box.getSize(size);
+    var center=new THREE.Vector3();box.getCenter(center);obj.position.sub(center);
+    var maxDim=Math.max(size.x,size.y,size.z);
+    mc.position.set(maxDim*1.1,maxDim*.8,maxDim*1.5);mc.lookAt(0,0,0);
+    ms.add(obj);mr.render(ms,mc);
+    var frames=0;
+    function miniLoop(){if(frames++>60)return;requestAnimationFrame(miniLoop);obj.rotation.y+=.04;mr.render(ms,mc);}
+    miniLoop();
+    emSpan.style.display='none';container.appendChild(mini);
+    mini.style.cssText='position:absolute;inset:0;width:100%;height:100%;border-radius:8px;';
+    setTimeout(function(){mr.dispose();},2000);
+  }catch(e){}
+}
+
+function selectCatalogItem(id){
+  if(selId===id){selId=null;toast('Deselected');}
+  else{
+    selId=id;
+    var def=CATALOG.find(function(m){return m.id===id;});
+    if(def)toast(def.em+' '+def.name+' · ₱'+def.price.toLocaleString());
+  }
+  document.querySelectorAll('.card').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
+  document.querySelectorAll('.sb-item').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
+  updateSbFooter();
+}
+
+function updateSbFooter(){
+  var def=selId?CATALOG.find(function(m){return m.id===selId;}):null;
+  var footer=document.getElementById('sb-footer-content');
+  var none=document.getElementById('sb-footer-none');
+  if(def){footer.classList.add('show');none.style.display='none';document.getElementById('sb-sel-name').textContent=def.em+' '+def.name+' · ₱'+def.price.toLocaleString();}
+  else{footer.classList.remove('show');none.style.display='';}
+}
+
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('active');document.getElementById('sidebar-toggle').classList.add('active');buildSidebar();}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('active');document.getElementById('sidebar-toggle').classList.remove('active');}
+
+// ── BIND BUTTONS ─────────────────────────────────────────────
+function bindButtons(){
+  // Landing CTA
+  document.getElementById('landing-cta').addEventListener('click',function(){
+    if(this.classList.contains('na'))return;
+    enterAR();
+  });
+  // Rail
+  document.getElementById('rb-undo').addEventListener('click',function(){if(!placed.length)return;deleteEntry(placed[placed.length-1]);toast('↩ Removed');});
+  document.getElementById('rb-del').addEventListener('click',function(){if(!grabbedEntry){toast('Grab an object first');return;}deleteEntry(grabbedEntry);});
+  document.getElementById('rb-photo').addEventListener('click',takeShot);
+  document.getElementById('rb-clear').addEventListener('click',function(){
+    if(!placed.length){toast('Nothing to clear');return;}
+    if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
+    placed.forEach(function(e){scene.remove(e.obj);if(e.label)scene.remove(e.label);});
+    placed=[];lastEntry=null;updateCount();hidePanel();rebuildObjPanel();toast('All cleared');
+  });
+  // Mode
+  document.getElementById('mb-place').addEventListener('click',function(){if(xrSession)setModeUI('place');});
+  document.getElementById('mb-move').addEventListener('click',function(){if(xrSession)setModeUI('move');});
+  // Scale
+  document.getElementById('scale-up').addEventListener('click',function(){changeScale(.1);});
+  document.getElementById('scale-dn').addEventListener('click',function(){changeScale(-.1);});
+  // Product panel
+  document.getElementById('btn-add-cart').addEventListener('click',function(){addToCart(lastEntry);});
+  document.getElementById('btn-wishlist').addEventListener('click',function(){toggleWish(lastEntry);});
+  document.getElementById('btn-del-placed').addEventListener('click',function(){if(lastEntry)deleteEntry(lastEntry);else toast('No object selected');});
+  // Cart
+  document.getElementById('list-btn').addEventListener('click',openCart);
+  document.getElementById('cart-close').addEventListener('click',function(){document.getElementById('cart-drawer').classList.remove('open');});
+  document.getElementById('checkout-btn').addEventListener('click',function(){toast('Proceeding to checkout…');document.getElementById('cart-drawer').classList.remove('open');});
+  // Objects list
+  document.getElementById('obj-list-btn').addEventListener('click',toggleObjPanel);
+  // Sidebar
+  document.getElementById('sidebar-toggle').addEventListener('click',function(){if(document.getElementById('sidebar').classList.contains('open'))closeSidebar();else openSidebar();});
+  document.getElementById('sidebar-overlay').addEventListener('click',closeSidebar);
+  document.getElementById('sb-search-input').addEventListener('input',function(){sbSearchQuery=this.value.trim().toLowerCase();buildSidebar();});
+  document.querySelectorAll('.sb-cat').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.sb-cat').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');sbCatFilter=btn.dataset.cat;buildSidebar();
+    });
+  });
+  document.getElementById('sb-btn-close-sel').addEventListener('click',function(){selectCatalogItem(selId);});
+  document.getElementById('sb-btn-place').addEventListener('click',function(){closeSidebar();if(xrSession){setModeUI('place');toast('👆 Tap a surface to place');}});
+}
+
+// ── AR CHECK ─────────────────────────────────────────────────
+function checkAR(){
+  var cta=document.getElementById('landing-cta');
+  if(!navigator.xr){markNA();return;}
+  navigator.xr.isSessionSupported('immersive-ar').then(function(ok){
+    if(!ok)markNA();
+    // else button stays enabled — user taps to start
+  }).catch(markNA);
+}
+function markNA(){
+  var cta=document.getElementById('landing-cta');
+  cta.classList.add('na');
+  cta.innerHTML='⚠ AR Not Available on This Device';
+  document.getElementById('landing-req').textContent='Requires Android with Chrome & ARCore support.';
+}
+
+// ── DEEP LINK ─────────────────────────────────────────────────
+function handleDeepLink(){
+  var pid=new URLSearchParams(window.location.search).get('product');
+  if(!pid)return;
+  selectCatalogItem(pid);
+}
+
+// ── LOADER ───────────────────────────────────────────────────
+function runLoader(cb){
+  var fill=document.getElementById('loader-fill'),p=0;
+  var iv=setInterval(function(){p+=5+Math.random()*10;fill.style.width=Math.min(p,100)+'%';if(p>=100){clearInterval(iv);setTimeout(cb,120);}},45);
+}
+
+// ── BOOT ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',function(){
+  runLoader(function(){
+    try{
+      initScene();
+      buildTray();
+      bindButtons();
+      checkAR();
+      handleDeepLink();
+      updateScaleVal();
+      startPreview(); // spinning 3D preview on landing background
+    }catch(e){
+      console.error(e);
+      document.getElementById('loader').innerHTML='<p style="color:red;font-family:monospace;padding:2rem">'+e.message+'</p>';
+      return;
+    }
+    var ld=document.getElementById('loader');ld.style.opacity='0';setTimeout(function(){ld.remove();},400);
+  });
+});
+
+})();
+</script>
+</body>
+</html>
