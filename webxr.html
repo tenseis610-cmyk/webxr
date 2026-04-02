@@ -149,7 +149,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 /* ══════════════════════════════════════════════════════════════
    AR HUD — everything below is only shown during an AR session
    ══════════════════════════════════════════════════════════════ */
-#hud{position:fixed;inset:0;z-index:10;pointer-events:none;isolation:isolate;}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;}
 
 /* ── AR TOP BAR ─────────────────────────────────────────── */
 #topbar{
@@ -188,13 +188,13 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   width:var(--sidebar-w);height:100vh;
   background:#fff;border-right:1px solid var(--border);
   box-shadow:4px 0 32px rgba(0,0,0,.14);
-  z-index:200;display:flex;flex-direction:column;
+  z-index:9000;display:flex;flex-direction:column;
   transition:left .3s cubic-bezier(.34,1.1,.64,1);overflow:hidden;
 }
 #sidebar.open{left:0;}
 #sidebar-overlay{
   pointer-events:none;position:fixed;inset:0;background:rgba(0,0,0,0);
-  z-index:199;transition:background .3s;
+  z-index:8999;transition:background .3s;
 }
 #sidebar-overlay.active{pointer-events:all;background:rgba(0,0,0,.35);}
 
@@ -352,7 +352,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 /* ── PRODUCT PANEL ───────────────────────────────────────── */
 #place-panel{
   pointer-events:all;
-  position:absolute;bottom:4.2rem;left:.9rem;right:.9rem;display:none;
+  position:absolute;bottom:9.5rem;left:.9rem;right:.9rem;display:none;
   background:var(--glass);backdrop-filter:blur(14px);
   border-radius:var(--radius);border:1px solid var(--border);
   padding:.8rem 1rem;box-shadow:var(--shadow);
@@ -385,7 +385,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 /* ── OBJECTS PANEL ───────────────────────────────────────── */
 #obj-panel{
   pointer-events:all;
-  position:absolute;bottom:4.2rem;right:.9rem;
+  position:absolute;bottom:9.5rem;right:.9rem;
   width:155px;max-height:210px;display:none;overflow-y:auto;
   background:var(--glass);backdrop-filter:blur(14px);
   border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);
@@ -415,28 +415,48 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 }
 .obj-del:active{transform:scale(.85);background:#EF4444;color:#fff;}
 
-/* ── AR BOTTOM BAR (cart + objects only — no quick select) ── */
+/* ── AR TRAY ─────────────────────────────────────────────── */
 #tray{
   pointer-events:all;
   position:absolute;bottom:0;left:0;right:0;
   background:var(--glass);backdrop-filter:blur(14px);
   border-top:1px solid var(--border);
   padding:.65rem .9rem calc(env(safe-area-inset-bottom,0px)+.65rem);
-  display:none;
+  display:none; /* hidden until AR starts */
 }
 #tray.show{display:block;}
-#tray-header{display:flex;justify-content:flex-end;align-items:center;gap:.5rem;}
+#tray-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;}
+#tray-label{font-size:.6rem;font-weight:600;color:var(--mid);letter-spacing:1px;}
+#tray-right{display:flex;gap:.5rem;align-items:center;}
 #obj-list-btn{
   font-size:.6rem;font-weight:600;color:var(--mid);background:var(--light);
-  border:1px solid var(--border);border-radius:6px;padding:.28rem .7rem;
+  border:1px solid var(--border);border-radius:6px;padding:.22rem .6rem;
   cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:.3rem;
 }
 #obj-list-btn.has-items{color:var(--dark);}
 #list-btn{
   font-size:.6rem;font-weight:600;color:var(--accent);background:rgba(45,106,79,.08);
-  border:1px solid rgba(45,106,79,.2);border-radius:6px;padding:.28rem .7rem;
+  border:1px solid rgba(45,106,79,.2);border-radius:6px;padding:.22rem .6rem;
   cursor:pointer;touch-action:manipulation;display:flex;align-items:center;gap:.3rem;
 }
+#cards{display:flex;gap:.45rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.05rem;}
+#cards::-webkit-scrollbar{display:none;}
+.card{
+  flex-shrink:0;width:68px;background:#fff;border:1.5px solid var(--border);
+  border-radius:10px;padding:.4rem .3rem;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:.2rem;
+  touch-action:manipulation;transition:all .18s;
+}
+.card:active{transform:scale(.92);}
+.card.sel{border-color:var(--accent);background:rgba(45,106,79,.05);}
+.card .cem{font-size:1.25rem;line-height:1;}
+.card .cnm{font-size:.42rem;color:var(--mid);text-align:center;font-weight:500;line-height:1.3;}
+.card .cpr{font-size:.44rem;color:var(--accent);font-weight:700;}
+.card .cdot{width:5px;height:5px;border-radius:50%;}
+.card .cdot.floor{background:var(--accent2);}
+.card .cdot.wall{background:#F59E0B;}
+.card .cdot.ceiling{background:#60A5FA;}
+.card.sel .cnm{color:var(--accent);}
 
 /* ── RIGHT RAIL ──────────────────────────────────────────── */
 #rail{
@@ -460,7 +480,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 #cart-drawer{
   pointer-events:all;position:fixed;bottom:-100%;left:0;right:0;
   background:#fff;border-top:1px solid var(--border);
-  border-radius:20px 20px 0 0;z-index:210;
+  border-radius:20px 20px 0 0;z-index:99999;
   transition:bottom .3s cubic-bezier(.34,1.1,.64,1);
   height:60vh;display:flex;flex-direction:column;
 }
@@ -491,13 +511,13 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 #cart-empty{font-size:.7rem;color:var(--mid);text-align:center;padding:1.5rem 0;letter-spacing:.5px;}
 
 /* ── FLASH / TOAST ───────────────────────────────────────── */
-#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:220;transition:opacity .04s;}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9998;transition:opacity .04s;}
 #toast{
-  position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%) translateY(6px);
+  position:fixed;bottom:9.2rem;left:50%;transform:translateX(-50%) translateY(6px);
   font-size:.65rem;font-weight:600;color:var(--dark);
   background:#fff;border:1px solid var(--border);
   border-radius:99px;padding:.38rem 1rem;white-space:nowrap;
-  pointer-events:none;z-index:230;opacity:0;transition:all .22s;box-shadow:var(--shadow);
+  pointer-events:none;z-index:99999;opacity:0;transition:all .22s;box-shadow:var(--shadow);
 }
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
@@ -541,8 +561,8 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
       <div class="step">
         <div class="step-num">Step 2</div>
         <div class="step-icon">🪑</div>
-        <div class="step-title">Open the catalog</div>
-        <div class="step-desc">Tap ☰ to browse the full furniture catalog inside AR.</div>
+        <div class="step-title">Choose a piece</div>
+        <div class="step-desc">Browse the catalog and select furniture to place.</div>
       </div>
       <div class="step">
         <div class="step-num">Step 3</div>
@@ -570,47 +590,46 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   </div>
 </div><!-- /landing -->
 
-<!-- ══ AR HUD (all hidden until session starts) ══════════════ -->
-<div id="hud">
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebar-overlay"></div>
 
-  <!-- SIDEBAR OVERLAY (inside HUD for AR DOM overlay compatibility) -->
-  <div id="sidebar-overlay"></div>
-
-  <!-- SIDEBAR (catalog — AR only, inside HUD) -->
-  <div id="sidebar">
-    <div id="sb-head">
-      <div id="sb-title">🪑 Furniture Catalog</div>
-      <div id="sb-search">
-        <span id="sb-search-icon">🔍</span>
-        <input type="text" id="sb-search-input" placeholder="Search furniture…" autocomplete="off" autocorrect="off" spellcheck="false">
-      </div>
-    </div>
-    <div id="sb-cats">
-      <button class="sb-cat on" data-cat="all">All</button>
-      <button class="sb-cat" data-cat="floor">Floor</button>
-      <button class="sb-cat" data-cat="wall">Wall</button>
-      <button class="sb-cat" data-cat="ceiling">Ceiling</button>
-    </div>
-    <div id="sb-empty">No items found</div>
-    <div id="sb-list"></div>
-    <div id="sb-footer">
-      <div id="sb-footer-content">
-        <div id="sb-sel-name">—</div>
-        <div id="sb-sel-actions">
-          <button class="sb-action-btn" id="sb-btn-close-sel">✕ Deselect</button>
-          <button class="sb-action-btn" id="sb-btn-place">Place in AR →</button>
-        </div>
-      </div>
-      <div id="sb-footer-none">Tap an item to select it</div>
+<!-- SIDEBAR (catalog — AR only) -->
+<div id="sidebar">
+  <div id="sb-head">
+    <div id="sb-title">🪑 Furniture Catalog</div>
+    <div id="sb-search">
+      <span id="sb-search-icon">🔍</span>
+      <input type="text" id="sb-search-input" placeholder="Search furniture…" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
   </div>
+  <div id="sb-cats">
+    <button class="sb-cat on" data-cat="all">All</button>
+    <button class="sb-cat" data-cat="floor">Floor</button>
+    <button class="sb-cat" data-cat="wall">Wall</button>
+    <button class="sb-cat" data-cat="ceiling">Ceiling</button>
+  </div>
+  <div id="sb-empty">No items found</div>
+  <div id="sb-list"></div>
+  <div id="sb-footer">
+    <div id="sb-footer-content">
+      <div id="sb-sel-name">—</div>
+      <div id="sb-sel-actions">
+        <button class="sb-action-btn" id="sb-btn-close-sel">✕ Deselect</button>
+        <button class="sb-action-btn" id="sb-btn-place">Place in AR →</button>
+      </div>
+    </div>
+    <div id="sb-footer-none">Tap an item to select it</div>
+  </div>
+</div>
+
+<!-- ══ AR HUD (all hidden until session starts) ══════════════ -->
+<div id="hud">
 
   <!-- AR top bar -->
   <div id="topbar" style="display:none;">
     <button id="sidebar-toggle">☰</button>
     <div id="logo">MIRA <span>HOME</span></div>
     <div id="surf-pill"></div>
-    <button id="ar-back-btn" title="Exit AR" style="width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--light);color:var(--dark);font-size:.8rem;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;flex-shrink:0;">✕</button>
   </div>
 
   <!-- Mode bar -->
@@ -686,34 +705,38 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
     <div><button class="rb danger" id="rb-clear">✕<div class="rb-lbl">CLEAR</div></button></div>
   </div>
 
-  <!-- AR bottom bar (cart + objects only) -->
+  <!-- AR tray (furniture quick-select) -->
   <div id="tray">
     <div id="tray-header">
-      <button id="obj-list-btn">📦 Objects <span id="pcnt">0</span></button>
-      <div id="list-btn">🛒 Cart <span id="cart-count">0</span></div>
-    </div>
-  </div>
-
-  <!-- Cart drawer (inside HUD for AR DOM overlay) -->
-  <div id="cart-drawer">
-    <div id="cart-drawer-inner">
-      <div id="cart-handle"></div>
-      <div id="cart-head">
-        <div id="cart-title">Cart</div>
-        <div id="cart-close">Close</div>
+      <div id="tray-label">QUICK SELECT</div>
+      <div id="tray-right">
+        <button id="obj-list-btn">📦 Objects <span id="pcnt">0</span></button>
+        <div id="list-btn">🛒 Cart <span id="cart-count">0</span></div>
       </div>
-      <div id="cart-items"><div id="cart-empty">No items yet</div></div>
     </div>
-    <div id="cart-footer">
-      <div id="cart-total">
-        <div id="cart-total-lbl">Total</div>
-        <div id="cart-total-val">₱0</div>
-      </div>
-      <button id="checkout-btn">Proceed to Checkout →</button>
-    </div>
+    <div id="cards"></div>
   </div>
 
 </div><!-- /hud -->
+
+<!-- Cart drawer -->
+<div id="cart-drawer">
+  <div id="cart-drawer-inner">
+    <div id="cart-handle"></div>
+    <div id="cart-head">
+      <div id="cart-title">Cart</div>
+      <div id="cart-close">Close</div>
+    </div>
+    <div id="cart-items"><div id="cart-empty">No items yet</div></div>
+  </div>
+  <div id="cart-footer">
+    <div id="cart-total">
+      <div id="cart-total-lbl">Total</div>
+      <div id="cart-total-val">₱0</div>
+    </div>
+    <button id="checkout-btn">Proceed to Checkout →</button>
+  </div>
+</div>
 
 <div id="flash"></div>
 <div id="toast"></div>
@@ -977,8 +1000,6 @@ function onARReady(session){
   setModeUI('place');
   showScan(true);showTapHint(false);showGrabHint(false);
   renderer.setAnimationLoop(arLoop);
-  // Auto-open sidebar so user can immediately select a product
-  setTimeout(function(){openSidebar();toast('👈 Select a product from the sidebar');},400);
 }
 
 function onSessionEnd(){
@@ -987,15 +1008,12 @@ function onSessionEnd(){
   hitSrcCenter=hitSrcDown=hitSrcUp=null;xrRefSpace=null;xrSession=null;
   lastHitPos=null;surfaceFound=false;
   hideReticles();
-  // Close sidebar if open
-  closeSidebar();
   // Hide AR HUD, show landing
   document.getElementById('topbar').style.display='none';
   document.getElementById('tray').classList.remove('show');
   document.getElementById('rail').classList.remove('show');
   document.getElementById('mode-bar').classList.remove('show');
   document.getElementById('scale-bar').classList.remove('show');
-  document.getElementById('obj-panel').classList.remove('show');
   document.getElementById('landing').classList.remove('hidden');
   setSurfPill('');hidePanel();
   showScan(false);showTapHint(false);showGrabHint(false);
@@ -1062,7 +1080,7 @@ function onTap(){
 }
 
 function doPlace(){
-  if(!selId){toast('☰ Open sidebar to select furniture');openSidebar();return;}
+  if(!selId){toast('Select a furniture item first');return;}
   if(!lastHitPos){toast('No surface detected — keep scanning');return;}
   var def=CATALOG.find(function(m){return m.id===selId;});if(!def)return;
   activeVC=def.variants[def._selVariant||0]||null;var obj=def.fn();activeVC=null;
@@ -1300,6 +1318,17 @@ function updateCount(){document.getElementById('pcnt').textContent=placed.length
 var toastT;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){el.classList.remove('on');},2600);}
 
+// ── BUILD TRAY ────────────────────────────────────────────────
+function buildTray(){
+  var wrap=document.getElementById('cards');
+  CATALOG.forEach(function(def){
+    var card=document.createElement('div');card.className='card';card.dataset.id=def.id;
+    card.innerHTML='<div class="cem">'+def.em+'</div><div class="cnm">'+def.name+'</div><div class="cpr">₱'+def.price.toLocaleString()+'</div><div class="cdot '+def.surface+'"></div>';
+    card.addEventListener('click',function(){selectCatalogItem(def.id);});
+    wrap.appendChild(card);
+  });
+}
+
 // ── SIDEBAR ───────────────────────────────────────────────────
 var sbCatFilter='all',sbSearchQuery='';
 
@@ -1356,8 +1385,9 @@ function selectCatalogItem(id){
   else{
     selId=id;
     var def=CATALOG.find(function(m){return m.id===id;});
-    if(def)toast(def.em+' '+def.name+' selected — tap surface to place');
+    if(def)toast(def.em+' '+def.name+' · ₱'+def.price.toLocaleString());
   }
+  document.querySelectorAll('.card').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
   document.querySelectorAll('.sb-item').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
   updateSbFooter();
 }
@@ -1406,8 +1436,6 @@ function bindButtons(){
   document.getElementById('checkout-btn').addEventListener('click',function(){toast('Proceeding to checkout…');document.getElementById('cart-drawer').classList.remove('open');});
   // Objects list
   document.getElementById('obj-list-btn').addEventListener('click',toggleObjPanel);
-  // AR back button
-  document.getElementById('ar-back-btn').addEventListener('click',function(){if(xrSession)xrSession.end();});
   // Sidebar
   document.getElementById('sidebar-toggle').addEventListener('click',function(){if(document.getElementById('sidebar').classList.contains('open'))closeSidebar();else openSidebar();});
   document.getElementById('sidebar-overlay').addEventListener('click',closeSidebar);
@@ -1456,6 +1484,7 @@ window.addEventListener('DOMContentLoaded',function(){
   runLoader(function(){
     try{
       initScene();
+      buildTray();
       bindButtons();
       checkAR();
       handleDeepLink();
