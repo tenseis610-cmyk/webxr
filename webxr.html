@@ -532,18 +532,19 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 
 /* ── CART DRAWER ─────────────────────────────────────────── */
 #cart-drawer{
-  pointer-events:all;position:fixed;bottom:-100%;left:0;right:0;
+  pointer-events:none;position:fixed;bottom:-100%;left:0;right:0;
   background:#fff;border-top:1px solid var(--border);
-  border-radius:20px 20px 0 0;z-index:99999;
+  border-radius:20px 20px 0 0;
+  z-index:100000;
   transition:bottom .3s cubic-bezier(.34,1.1,.64,1);
   height:60vh;display:flex;flex-direction:column;
 }
-#cart-drawer.open{bottom:0;}
+#cart-drawer.open{bottom:0;pointer-events:all;}
 #cart-drawer-inner{flex:1;overflow-y:auto;padding:0 1rem;}
 #cart-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:.75rem auto .9rem;}
 #cart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--border);}
 #cart-title{font-size:1rem;font-weight:700;color:var(--dark);}
-#cart-close{font-size:.65rem;color:var(--mid);cursor:pointer;padding:.2rem .5rem;border:1px solid var(--border);border-radius:6px;}
+#cart-close{font-size:.65rem;color:var(--mid);cursor:pointer;padding:.3rem .7rem;border:1px solid var(--border);border-radius:6px;background:var(--light);touch-action:manipulation;font-family:'Inter',sans-serif;font-weight:600;}
 .ci{display:flex;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(--border);}
 .ci-em{font-size:1.5rem;width:36px;text-align:center;flex-shrink:0;}
 .ci-info{flex:1;}
@@ -771,7 +772,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
     <div id="cart-handle"></div>
     <div id="cart-head">
       <div id="cart-title">Cart</div>
-      <div id="cart-close">Close</div>
+      <button id="cart-close">✕ Close</button>
     </div>
     <div id="cart-items"><div id="cart-empty">No items yet</div></div>
   </div>
@@ -1599,8 +1600,8 @@ function bindButtons(){
   document.getElementById('btn-del-placed').addEventListener('click',function(){_tapFromUI=true;if(lastEntry)deleteEntry(lastEntry);else toast('No object selected');});
   // Cart — now in topbar
   document.getElementById('cart-topbar-btn').addEventListener('click',function(){_tapFromUI=true;openCart();});
-  document.getElementById('cart-close').addEventListener('click',function(){document.getElementById('cart-drawer').classList.remove('open');});
-  document.getElementById('checkout-btn').addEventListener('click',function(){toast('Proceeding to checkout…');document.getElementById('cart-drawer').classList.remove('open');});
+  document.getElementById('cart-close').addEventListener('click',function(){_tapFromUI=true;document.getElementById('cart-drawer').classList.remove('open');});
+  document.getElementById('checkout-btn').addEventListener('click',function(){_tapFromUI=true;toast('Proceeding to checkout…');document.getElementById('cart-drawer').classList.remove('open');});
   // Objects list
   document.getElementById('obj-list-btn').addEventListener('click',function(){_tapFromUI=true;toggleObjPanel();});
 }
