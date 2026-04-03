@@ -182,22 +182,63 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 .rb-lbl{font-size:.35rem;color:var(--mid);font-weight:500;letter-spacing:.3px;}
 .rb.danger{color:#EF4444;}
 
-/* CART — highest z-index, above everything */
-#cart-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:59998;display:none;touch-action:none;}
-#cart-backdrop.show{display:block;}
-#cart-drawer{
-  pointer-events:none;position:fixed;bottom:-100%;left:0;right:0;
-  background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;
-  z-index:59999;transition:bottom .32s cubic-bezier(.34,1.1,.64,1);
-  height:62vh;display:flex;flex-direction:column;
-  box-shadow:0 -10px 40px rgba(0,0,0,.3);
+/* ============================================================
+   CART — FIX: removed pointer-events:none from #cart-drawer
+   and fixed height/scroll for mobile
+   ============================================================ */
+#cart-backdrop{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.52);
+  z-index:59998;
+  display:none;
+  touch-action:none;
 }
-#cart-drawer.open{bottom:0;pointer-events:all;}
-#cart-drawer-inner{flex:1;overflow-y:auto;padding:0 1rem;-webkit-overflow-scrolling:touch;}
+#cart-backdrop.show{display:block;}
+
+#cart-drawer{
+  /* FIX 1: NO pointer-events:none here — it was blocking all taps inside the drawer */
+  position:fixed;
+  bottom:-100%;
+  left:0;right:0;
+  background:#fff;
+  border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;
+  z-index:59999;
+  transition:bottom .32s cubic-bezier(.34,1.1,.64,1);
+  /* FIX 2: Use max-height instead of fixed height, and flex layout */
+  max-height:70vh;
+  height:auto;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 -10px 40px rgba(0,0,0,.3);
+  /* FIX 3: Ensure it's always interactive when visible */
+  pointer-events:all;
+}
+#cart-drawer.open{bottom:0;}
+
+/* FIX 4: Inner scroll area must have explicit flex properties */
+#cart-drawer-inner{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:0 1rem;
+  /* FIX 5: min-height:0 allows flex child to shrink below content height */
+  min-height:0;
+}
+
 #cart-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:.75rem auto .9rem;}
 #cart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;padding-bottom:.65rem;border-bottom:1px solid var(--border);}
 #cart-title{font-size:1rem;font-weight:700;color:var(--dark);}
-#cart-close-btn{font-size:.65rem;color:var(--mid);cursor:pointer;padding:.3rem .7rem;border:1px solid var(--border);border-radius:6px;background:var(--light);font-family:'Inter',sans-serif;font-weight:600;touch-action:manipulation;}
+#cart-close-btn{
+  font-size:.65rem;color:var(--mid);cursor:pointer;
+  padding:.3rem .7rem;border:1px solid var(--border);
+  border-radius:6px;background:var(--light);
+  font-family:'Inter',sans-serif;font-weight:600;
+  touch-action:manipulation;
+  /* FIX 6: explicit pointer-events for the close button */
+  pointer-events:all;
+}
 .ci{display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);}
 .ci:last-child{border-bottom:none;}
 .ci-em{font-size:1.5rem;width:36px;text-align:center;flex-shrink:0;}
@@ -205,14 +246,36 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 .ci-name{font-size:.82rem;font-weight:600;color:var(--dark);}
 .ci-surface{font-size:.58rem;color:var(--mid);margin-top:.1rem;}
 .ci-price{font-size:.8rem;font-weight:700;color:var(--accent);flex-shrink:0;}
-.ci-rm{width:26px;height:26px;border-radius:50%;background:rgba(239,68,68,.08);color:#EF4444;border:1px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:.4rem;font-size:.65rem;touch-action:manipulation;}
+.ci-rm{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(239,68,68,.08);color:#EF4444;
+  border:1px solid rgba(239,68,68,.2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;margin-left:.4rem;font-size:.65rem;
+  touch-action:manipulation;
+  pointer-events:all;
+}
 .ci-rm:active{background:#EF4444;color:#fff;}
 #cart-empty-msg{font-size:.72rem;color:var(--mid);text-align:center;padding:2.5rem 0;line-height:1.8;}
-#cart-footer{padding:.75rem 1rem calc(env(safe-area-inset-bottom,0px)+.75rem);border-top:1px solid var(--border);flex-shrink:0;background:#fff;}
+#cart-footer{
+  padding:.75rem 1rem calc(env(safe-area-inset-bottom,0px)+.75rem);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+  background:#fff;
+  /* FIX 7: ensure footer doesn't get hidden */
+  position:relative;
+  z-index:1;
+}
 #cart-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;}
 #cart-total-lbl{font-size:.82rem;color:var(--mid);font-weight:500;}
 #cart-total-val{font-size:1.05rem;font-weight:700;color:var(--dark);}
-#checkout-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:.8rem;font-family:'Inter',sans-serif;font-weight:700;font-size:.88rem;cursor:pointer;touch-action:manipulation;}
+#checkout-btn{
+  width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:var(--radius);padding:.8rem;
+  font-family:'Inter',sans-serif;font-weight:700;font-size:.88rem;
+  cursor:pointer;touch-action:manipulation;
+  pointer-events:all;
+}
 #checkout-btn:active{background:#1B4D38;}
 
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9998;transition:opacity .04s;}
@@ -325,7 +388,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   </div>
 </div>
 
-<!-- Cart — outside #hud, highest z-index -->
+<!-- Cart — outside #hud, uses fixed positioning and highest z-index -->
 <div id="cart-backdrop"></div>
 <div id="cart-drawer">
   <div id="cart-drawer-inner">
@@ -367,7 +430,6 @@ function ratMat(c,r,m){return new THREE.MeshStandardMaterial({color:c||0xC4956A,
 function cushMat(c){return new THREE.MeshStandardMaterial({color:c||0x8B7355,roughness:.9,metalness:0});}
 function getVC(def){return activeVC?parseInt(activeVC.replace('#','0x')):parseInt(def.replace('#','0x'));}
 
-/* ---- 3D BUILDERS ---- */
 function mkSofa(){
   var g=new THREE.Group(),vc=getVC('#C4956A');
   g.add(mesh(new THREE.BoxGeometry(.55,.12,.28),ratMat(vc),0,.06,0));
@@ -410,21 +472,15 @@ function mkStool(){
   for(var i=0;i<3;i++){var a=(i/3)*Math.PI*2;var leg=mesh(new THREE.CylinderGeometry(.012,.012,.14,6),ratMat(vc),Math.cos(a)*.07,.07,Math.sin(a)*.07);leg.rotation.z=Math.sin(a)*.15;leg.rotation.x=-Math.cos(a)*.15;g.add(leg);}
   return g;
 }
-// WALL ITEMS: built in XY plane so they display correctly when wall-mounted
-// In the preview, they're viewed straight-on. In AR, +Z faces away from wall.
 function mkWallShelf(){
   var g=new THREE.Group(),vc=getVC('#C4956A');
-  // Back plate in XY plane (flush against wall)
   g.add(mesh(new THREE.BoxGeometry(.28,.18,.018),ratMat(vc*.85),0,0,0));
-  // Shelf board sticks out along +Z
   g.add(mesh(new THREE.BoxGeometry(.26,.022,.14),ratMat(vc),0,.04,.07));
-  // Brackets
   [-1,1].forEach(function(s){g.add(mesh(new THREE.BoxGeometry(.014,.08,.12),ratMat(vc*.8),s*.11,-.02,.06));});
   return g;
 }
 function mkWallClock(){
   var g=new THREE.Group(),vc=getVC('#C4956A');
-  // Torus frame in XY plane (face points toward +Z / toward viewer)
   var frame=new THREE.Mesh(new THREE.TorusGeometry(.1,.022,12,40),ratMat(vc));g.add(frame);
   g.add(mesh(new THREE.CircleGeometry(.078,32),new THREE.MeshStandardMaterial({color:0xfaf6f0,roughness:.8}),0,0,.005));
   var hh=mesh(new THREE.BoxGeometry(.004,.045,.003),new THREE.MeshStandardMaterial({color:0x2a2a2a}),0,0,.01);hh.rotation.z=.5;g.add(hh);
@@ -434,7 +490,6 @@ function mkWallClock(){
 }
 function mkWallMirror(){
   var g=new THREE.Group(),vc=getVC('#C4956A');
-  // Oval frame in XY plane
   var frame=new THREE.Mesh(new THREE.TorusGeometry(.1,.025,12,40),ratMat(vc));frame.scale.set(1,1.55,1);g.add(frame);
   var mirror=new THREE.Mesh(new THREE.PlaneGeometry(.17,.28),new THREE.MeshStandardMaterial({color:0xc8e8f0,metalness:.85,roughness:.05,transparent:true,opacity:.75}));mirror.position.z=.005;g.add(mirror);
   g.add(mesh(new THREE.BoxGeometry(.008,.04,.008),ratMat(0x5a3d1a),0,.175,-.006));
@@ -442,7 +497,6 @@ function mkWallMirror(){
 }
 function mkPendantLamp(){
   var g=new THREE.Group(),vc=getVC('#C4956A');
-  // Hangs downward: cord goes up (+Y), shade opens downward
   g.add(mesh(new THREE.CylinderGeometry(.006,.006,.2,6),ratMat(0x3a2a1a),0,.1,0));
   var shade=new THREE.Mesh(new THREE.SphereGeometry(.14,16,8,0,Math.PI*2,0,Math.PI*.6),ratMat(vc));shade.rotation.x=Math.PI;g.add(shade);
   g.add(mesh(new THREE.SphereGeometry(.04,12,12),new THREE.MeshStandardMaterial({color:0xfff5cc,emissive:0xffd97a,emissiveIntensity:.8,roughness:.5}),0,-.02,0));
@@ -498,7 +552,6 @@ var cart=[];
 var _tapFromUI=false;
 var arTouchStartX=0,arTouchMoved=false;
 var pinchStartDist=0,pinchActive=false,pinchStartScale=1;
-// Preview
 var prevCurrentIdx=0,prevCurrentObj=null,prevActive=false,prevRAF=null;
 var prevAzimuth=0.4,prevElevation=0.32;
 var prevDragging=false,prevDragX=0,prevDragY=0;
@@ -509,19 +562,15 @@ function initPreviewScene(){
   prevScene=new THREE.Scene();
   prevScene.background=new THREE.Color(0x090e14);
   prevCamera=new THREE.PerspectiveCamera(45,1,.01,50);
-
   prevRenderer=new THREE.WebGLRenderer({antialias:true});
   prevRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
-
   prevScene.add(new THREE.AmbientLight(0xffffff,.7));
   var sun=new THREE.DirectionalLight(0xffffff,1.3);sun.position.set(3,5,4);prevScene.add(sun);
   prevScene.add(new THREE.HemisphereLight(0xa0c0ff,0x503010,.45));
   var grid=new THREE.GridHelper(6,24,0x1a3528,0x0f2018);grid.position.y=-0.6;prevScene.add(grid);
-
   prevCanvas=prevRenderer.domElement;
   prevCanvas.style.cssText='display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;';
   document.getElementById('preview-canvas-wrap').appendChild(prevCanvas);
-
   var wrap=document.getElementById('preview-canvas-wrap');
   function resize(){
     var w=wrap.clientWidth||window.innerWidth;
@@ -532,42 +581,17 @@ function initPreviewScene(){
   }
   resize();
   window.addEventListener('resize',resize);
-
-  // Mouse orbit
-  prevCanvas.addEventListener('mousedown',function(e){
-    prevDragging=true;prevDragX=e.clientX;prevDragY=e.clientY;
-    prevCanvas.style.cursor='grabbing';e.preventDefault();
-  },{passive:false});
-  window.addEventListener('mousemove',function(e){
-    if(!prevDragging||!prevActive)return;
-    prevAzimuth-=(e.clientX-prevDragX)*.013;
-    prevElevation=Math.max(-.6,Math.min(1.2,prevElevation-(e.clientY-prevDragY)*.009));
-    prevDragX=e.clientX;prevDragY=e.clientY;
-  });
+  prevCanvas.addEventListener('mousedown',function(e){prevDragging=true;prevDragX=e.clientX;prevDragY=e.clientY;prevCanvas.style.cursor='grabbing';e.preventDefault();},{passive:false});
+  window.addEventListener('mousemove',function(e){if(!prevDragging||!prevActive)return;prevAzimuth-=(e.clientX-prevDragX)*.013;prevElevation=Math.max(-.6,Math.min(1.2,prevElevation-(e.clientY-prevDragY)*.009));prevDragX=e.clientX;prevDragY=e.clientY;});
   window.addEventListener('mouseup',function(){prevDragging=false;if(prevCanvas)prevCanvas.style.cursor='grab';});
-
-  // Touch orbit (stopPropagation so it doesn't reach AR handlers or landing sheet)
-  prevCanvas.addEventListener('touchstart',function(e){
-    if(e.touches.length===1){prevDragging=true;prevDragX=e.touches[0].clientX;prevDragY=e.touches[0].clientY;}
-    e.stopPropagation();
-  },{passive:true});
-  prevCanvas.addEventListener('touchmove',function(e){
-    if(!prevDragging||e.touches.length!==1||!prevActive)return;
-    prevAzimuth-=(e.touches[0].clientX-prevDragX)*.015;
-    prevElevation=Math.max(-.6,Math.min(1.2,prevElevation-(e.touches[0].clientY-prevDragY)*.011));
-    prevDragX=e.touches[0].clientX;prevDragY=e.touches[0].clientY;
-    e.stopPropagation();
-  },{passive:true});
+  prevCanvas.addEventListener('touchstart',function(e){if(e.touches.length===1){prevDragging=true;prevDragX=e.touches[0].clientX;prevDragY=e.touches[0].clientY;}e.stopPropagation();},{passive:true});
+  prevCanvas.addEventListener('touchmove',function(e){if(!prevDragging||e.touches.length!==1||!prevActive)return;prevAzimuth-=(e.touches[0].clientX-prevDragX)*.015;prevElevation=Math.max(-.6,Math.min(1.2,prevElevation-(e.touches[0].clientY-prevDragY)*.011));prevDragX=e.touches[0].clientX;prevDragY=e.touches[0].clientY;e.stopPropagation();},{passive:true});
   prevCanvas.addEventListener('touchend',function(e){prevDragging=false;e.stopPropagation();},{passive:true});
 }
 
 function updatePrevCamera(){
   var r=2.1;
-  prevCamera.position.set(
-    r*Math.cos(prevElevation)*Math.sin(prevAzimuth),
-    r*Math.sin(prevElevation),
-    r*Math.cos(prevElevation)*Math.cos(prevAzimuth)
-  );
+  prevCamera.position.set(r*Math.cos(prevElevation)*Math.sin(prevAzimuth),r*Math.sin(prevElevation),r*Math.cos(prevElevation)*Math.cos(prevAzimuth));
   prevCamera.lookAt(0,0,0);
 }
 
@@ -596,41 +620,24 @@ function showPreviewItem(idx){
   prevCurrentIdx=((idx%list.length)+list.length)%list.length;
   var def=list[prevCurrentIdx];
   if(prevCurrentObj){prevScene.remove(prevCurrentObj);prevCurrentObj=null;}
-
   activeVC=def.variants[0]||null;
   var obj=def.fn();
   activeVC=null;
-
-  // Center at origin
   var box=new THREE.Box3().setFromObject(obj);
   var size=new THREE.Vector3();box.getSize(size);
   var center=new THREE.Vector3();box.getCenter(center);
   obj.position.sub(center);
-  // Scale to fill view nicely
   obj.scale.setScalar(0.72/Math.max(size.x,size.y,size.z));
-
   prevScene.add(obj);
   prevCurrentObj=obj;
-
-  // Set good default camera angle per surface type
-  if(def.surface==='wall'){
-    // Look straight at the face (wall items built in XY plane, +Z toward viewer)
-    prevAzimuth=0;prevElevation=0.05;
-  }else if(def.surface==='ceiling'){
-    // Look slightly from below
-    prevAzimuth=0.3;prevElevation=-0.25;
-  }else{
-    // Normal 3/4 above view for floor items
-    prevAzimuth=0.4;prevElevation=0.35;
-  }
-
+  if(def.surface==='wall'){prevAzimuth=0;prevElevation=0.05;}
+  else if(def.surface==='ceiling'){prevAzimuth=0.3;prevElevation=-0.25;}
+  else{prevAzimuth=0.4;prevElevation=0.35;}
   var nameEl=document.getElementById('preview-product-name');
   nameEl.textContent=def.em+' '+def.name+' · ₱'+def.price.toLocaleString();
   nameEl.classList.add('show');
-
   var tagTxt={wall:'WALL ITEM · DRAG TO ORBIT',ceiling:'CEILING ITEM · DRAG TO ORBIT',floor:'DRAG TO ORBIT'}[def.surface]||'DRAG TO ORBIT';
   document.getElementById('preview-tag').textContent=tagTxt;
-
   document.querySelectorAll('.pdot').forEach(function(d,i){d.classList.toggle('on',i===prevCurrentIdx);});
   buildPreviewDots();
 }
@@ -675,7 +682,6 @@ function initARScene(){
   scene.add(new THREE.HemisphereLight(0xffffff,0x888888,.4));
   buildReticles();
   window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-  // AR touch events go on the ar-canvas-host
   var arHost=document.getElementById('ar-canvas-host');
   arHost.addEventListener('touchstart',onARTouchStart,{passive:true});
   arHost.addEventListener('touchmove',onARTouchMove,{passive:true});
@@ -803,19 +809,15 @@ function arLoop(ts,frame){
   renderer.render(scene,camera);
 }
 
-/* ---- XR SELECT ---- */
-// This fires from the WebXR 'select' event (controller/screen tap in AR)
 function onXRSelect(){
   if(document.getElementById('cart-drawer').classList.contains('open'))return;
-  if(_tapFromUI){_tapFromUI=false;return;}    // tap was on a UI button
-  if(arTouchMoved){arTouchMoved=false;return;} // tap was actually a swipe
+  if(_tapFromUI){_tapFromUI=false;return;}
+  if(arTouchMoved){arTouchMoved=false;return;}
   if(mode==='place')doPlace();
   else doGrab();
 }
 
-/* ---- AR TOUCH (rotation/pinch only — on the AR canvas) ---- */
 function onARTouchStart(e){
-  // If touch target is a HUD element, mark as UI
   var onUI=e.target.closest('#tray,#place-panel,#rail,#topbar,#mode-bar,#cart-drawer,#obj-panel,#scale-bar');
   if(onUI){_tapFromUI=true;return;}
   _tapFromUI=false;
@@ -849,23 +851,17 @@ function onARTouchMove(e){
 }
 function onARTouchEnd(){pinchActive=false;}
 
-/* ---- PLACE / GRAB ---- */
 function doPlace(){
   if(!selId){toast('Select a product from the tray first');return;}
   if(!lastHitPos){toast('No surface detected — keep scanning');return;}
   var def=CATALOG.find(function(m){return m.id===selId;});if(!def)return;
-
   activeVC=def.variants[def._selVariant||0]||null;
   var obj=def.fn();
   activeVC=null;
   obj.position.copy(lastHitPos);
-
-  // Orient to surface
   if(lastSurfType==='wall'&&lastHitMat4){
-    // Wall normal is col1 of the hit pose matrix (the "up" of the wall)
     var mel=lastHitMat4.elements;
     var wallNormal=new THREE.Vector3(mel[4],mel[5],mel[6]).normalize();
-    // Object's +Z should point out from the wall (toward viewer)
     obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),wallNormal);
   }else if(lastSurfType==='ceiling'){
     obj.rotation.set(Math.PI,0,0);
@@ -873,17 +869,13 @@ function doPlace(){
     obj.rotation.set(0,0,0);
   }
   obj.scale.setScalar(userScale);
-
   var lbl=makePriceLabel(def.name,def.price);
   lbl.position.set(lastHitPos.x,lastHitPos.y+.35,lastHitPos.z);lbl.visible=false;
   scene.add(lbl);scene.add(obj);
-
   var entry={obj:obj,def:def,label:lbl,baseY:lastHitPos.y,surfType:lastSurfType,userRot:0,scale:userScale,uid:++placedCounter};
   placed.push(entry);lastEntry=entry;updateCount();rebuildObjPanel();
-
   var sv=0,tgt=userScale;
   var iv=setInterval(function(){sv=Math.min(sv+.07,1);obj.scale.setScalar(tgt*(1-Math.pow(1-sv,3)));if(sv>=1)clearInterval(iv);},14);
-
   showPanel(entry);toast(def.em+' '+def.name+' placed!');
 }
 
@@ -928,7 +920,6 @@ function deleteEntry(entry){
   toast('🗑 Removed');
 }
 
-/* ---- PANELS ---- */
 function showPanel(entry){
   var d=entry.def;
   document.getElementById('pp-name').textContent=d.name;
@@ -1005,39 +996,52 @@ function removeFromCart(uid){
   updateCartBadge();renderCartItems();
 }
 function updateCartBadge(){document.getElementById('cart-topbar-badge').textContent=cart.length;}
+
 function renderCartItems(){
   var wrap=document.getElementById('cart-items');
   wrap.innerHTML='';
   if(!cart.length){
     wrap.innerHTML='<div id="cart-empty-msg">Your cart is empty.<br>Place furniture &amp; tap "Add to Cart".</div>';
-    document.getElementById('cart-total-val').textContent='₱0';return;
+    document.getElementById('cart-total-val').textContent='₱0';
+    return;
   }
   var total=0;
   cart.forEach(function(c){
     total+=c.def.price;
-    var row=document.createElement('div');row.className='ci';
+    var row=document.createElement('div');
+    row.className='ci';
     row.innerHTML=
       '<div class="ci-em">'+c.def.em+'</div>'+
-      '<div class="ci-info"><div class="ci-name">'+c.def.name+'</div><div class="ci-surface">'+{floor:'Floor',wall:'Wall',ceiling:'Ceiling'}[c.def.surface]+'</div></div>'+
+      '<div class="ci-info"><div class="ci-name">'+c.def.name+'</div>'+
+      '<div class="ci-surface">'+{floor:'Floor',wall:'Wall',ceiling:'Ceiling'}[c.def.surface]+'</div></div>'+
       '<div class="ci-price">₱'+c.def.price.toLocaleString()+'</div>'+
-      '<div class="ci-rm">✕</div>';
-    row.querySelector('.ci-rm').addEventListener('click',function(){removeFromCart(c.uid);});
+      '<div class="ci-rm" data-uid="'+c.uid+'">✕</div>';
+    // FIX 8: Attach remove listener directly, not via querySelector after innerHTML
+    var rmBtn=row.querySelector('.ci-rm');
+    rmBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      removeFromCart(c.uid);
+    });
     wrap.appendChild(row);
   });
   document.getElementById('cart-total-val').textContent='₱'+total.toLocaleString();
 }
+
 function openCart(){
   renderCartItems();
-  // Show backdrop first so it doesn't flicker over the drawer
   document.getElementById('cart-backdrop').classList.add('show');
-  // Small delay to ensure backdrop is painted before drawer slides up
-  requestAnimationFrame(function(){
+  // FIX 9: Use setTimeout instead of rAF for more reliable animation trigger
+  setTimeout(function(){
     document.getElementById('cart-drawer').classList.add('open');
-  });
+  }, 10);
 }
+
 function closeCart(){
   document.getElementById('cart-drawer').classList.remove('open');
-  document.getElementById('cart-backdrop').classList.remove('show');
+  // FIX 10: Delay backdrop hide until after drawer slide-down animation
+  setTimeout(function(){
+    document.getElementById('cart-backdrop').classList.remove('show');
+  }, 340);
 }
 
 function takeShot(){
@@ -1045,7 +1049,6 @@ function takeShot(){
   setTimeout(function(){try{var url=renderer.domElement.toDataURL('image/png');var a=document.createElement('a');a.href=url;a.download='mira-ar.png';a.click();toast('Saved!');}catch(e){toast('Screenshot captured');}},60);
 }
 
-/* ---- UI HELPERS ---- */
 function showScan(v){document.getElementById('scan-ui').classList.toggle('show',v);}
 function showTapHint(v){document.getElementById('tap-hint').classList.toggle('show',v);}
 function showGrabHint(v){document.getElementById('grab-hint').classList.toggle('show',v);}
@@ -1059,7 +1062,6 @@ function updateCount(){document.getElementById('pcnt').textContent=placed.length
 var toastT;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){el.classList.remove('on');},2500);}
 
-/* ---- TRAY ---- */
 function buildTray(){
   var wrap=document.getElementById('cards');
   var noSel=document.getElementById('tray-no-sel');
@@ -1079,7 +1081,7 @@ function buildTray(){
       '<div class="cpr">₱'+def.price.toLocaleString()+'</div>'+
       '<div class="cdot '+def.surface+'"></div>';
     card.addEventListener('click',function(){
-      _tapFromUI=true; // ← CRITICAL: prevent XR select from firing after this touch
+      _tapFromUI=true;
       selectCatalogItem(def.id);
     });
     wrap.appendChild(card);
@@ -1098,11 +1100,9 @@ function selectCatalogItem(id){
     if(def)toast(def.em+' '+def.name+' selected — tap a surface to place');
     if(xrSession&&def&&!landingSelected.has(id))landingSelected.add(id);
   }
-  // Update card highlights without rebuilding DOM
   document.querySelectorAll('.card').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
 }
 
-/* ---- LANDING PICKER ---- */
 function buildLandingPicker(){
   var grid=document.getElementById('landing-product-grid');grid.innerHTML='';
   CATALOG.forEach(function(def){
@@ -1132,12 +1132,10 @@ function updateCTALabel(){
   cta.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> '+(landingSelected.size>0?'Preview '+landingSelected.size+' Item'+(landingSelected.size>1?'s':'')+' in AR →':'Start AR Experience');
 }
 
-/* ---- BIND BUTTONS ---- */
 function bindButtons(){
   document.getElementById('landing-cta').addEventListener('click',function(){if(!this.classList.contains('na'))enterAR();});
   document.getElementById('preview-prev').addEventListener('click',function(){showPreviewItem(prevCurrentIdx-1);});
   document.getElementById('preview-next').addEventListener('click',function(){showPreviewItem(prevCurrentIdx+1);});
-
   document.getElementById('pp-close').addEventListener('click',function(){_tapFromUI=true;hidePanel();if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;rebuildObjPanel();}});
   document.getElementById('rb-undo').addEventListener('click',function(){_tapFromUI=true;if(placed.length)deleteEntry(placed[placed.length-1]);});
   document.getElementById('rb-del').addEventListener('click',function(){_tapFromUI=true;if(grabbedEntry)deleteEntry(grabbedEntry);else toast('Grab an object first');});
@@ -1155,12 +1153,30 @@ function bindButtons(){
   document.getElementById('btn-add-cart').addEventListener('click',function(){_tapFromUI=true;addToCart(lastEntry);});
   document.getElementById('btn-del-placed').addEventListener('click',function(){_tapFromUI=true;if(lastEntry)deleteEntry(lastEntry);else toast('No object selected');});
 
-  // Cart — no guard needed, works anytime
-  document.getElementById('cart-topbar-btn').addEventListener('click',function(e){e.stopPropagation();_tapFromUI=true;openCart();});
-  document.getElementById('cart-close-btn').addEventListener('click',function(){closeCart();});
-  document.getElementById('cart-backdrop').addEventListener('click',function(){closeCart();});
-  document.getElementById('checkout-btn').addEventListener('click',function(){toast('Proceeding to checkout…');closeCart();});
+  // Cart buttons
+  document.getElementById('cart-topbar-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    _tapFromUI=true;
+    openCart();
+  });
+  document.getElementById('cart-close-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    closeCart();
+  });
+  // FIX 11: Backdrop click only closes if clicking directly on backdrop, not bubbling from drawer
+  document.getElementById('cart-backdrop').addEventListener('click',function(e){
+    if(e.target===this) closeCart();
+  });
+  document.getElementById('checkout-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    toast('Proceeding to checkout…');
+    closeCart();
+  });
   document.getElementById('obj-list-btn').addEventListener('click',function(){_tapFromUI=true;toggleObjPanel();});
+
+  // FIX 12: Prevent touches inside cart drawer from propagating to AR canvas
+  document.getElementById('cart-drawer').addEventListener('touchstart',function(e){e.stopPropagation();},{passive:true});
+  document.getElementById('cart-drawer').addEventListener('touchmove',function(e){e.stopPropagation();},{passive:true});
 }
 
 function checkAR(){
