@@ -182,10 +182,6 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 .rb-lbl{font-size:.35rem;color:var(--mid);font-weight:500;letter-spacing:.3px;}
 .rb.danger{color:#EF4444;}
 
-/* ============================================================
-   CART — FIX: removed pointer-events:none from #cart-drawer
-   and fixed height/scroll for mobile
-   ============================================================ */
 #cart-backdrop{
   position:fixed;inset:0;
   background:rgba(0,0,0,.52);
@@ -212,14 +208,12 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 }
 #cart-drawer.open{transform:translateY(0);}
 
-/* FIX 4: Inner scroll area must have explicit flex properties */
 #cart-drawer-inner{
   flex:1;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
   padding:0 1rem;
-  /* FIX 5: min-height:0 allows flex child to shrink below content height */
   min-height:0;
 }
 
@@ -232,7 +226,6 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   border-radius:6px;background:var(--light);
   font-family:'Inter',sans-serif;font-weight:600;
   touch-action:manipulation;
-  /* FIX 6: explicit pointer-events for the close button */
   pointer-events:all;
 }
 .ci{display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);}
@@ -258,7 +251,6 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   border-top:1px solid var(--border);
   flex-shrink:0;
   background:#fff;
-  /* FIX 7: ensure footer doesn't get hidden */
   position:relative;
   z-index:1;
 }
@@ -383,7 +375,6 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
     <div id="cards"></div>
   </div>
 
-  <!-- Cart INSIDE #hud so it renders in WebXR domOverlay -->
   <div id="cart-backdrop"></div>
   <div id="cart-drawer">
     <div id="cart-drawer-inner">
@@ -547,8 +538,12 @@ var xrSession=null,xrRefSpace=null;
 var hitSrcCenter=null,hitSrcDown=null,hitSrcUp=null;
 var cart=[];
 var _tapFromUI=false;
-var arTouchStartX=0,arTouchMoved=false;
+
+// ---- TOUCH STATE (now document-level, works inside WebXR dom-overlay) ----
+var arTouchStartX=0,arTouchStartY=0,arTouchMoved=false;
 var pinchStartDist=0,pinchActive=false,pinchStartScale=1;
+var arActive=false; // true only when XR session is running
+
 var prevCurrentIdx=0,prevCurrentObj=null,prevActive=false,prevRAF=null;
 var prevAzimuth=0.4,prevElevation=0.32;
 var prevDragging=false,prevDragX=0,prevDragY=0;
@@ -679,10 +674,12 @@ function initARScene(){
   scene.add(new THREE.HemisphereLight(0xffffff,0x888888,.4));
   buildReticles();
   window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-  var arHost=document.getElementById('ar-canvas-host');
-  arHost.addEventListener('touchstart',onARTouchStart,{passive:true});
-  arHost.addEventListener('touchmove',onARTouchMove,{passive:true});
-  arHost.addEventListener('touchend',onARTouchEnd,{passive:true});
+
+  // ---- FIX: attach touch listeners to document with capture so they fire
+  //           before WebXR's dom-overlay consumes them ----
+  document.addEventListener('touchstart', onARTouchStart, {passive:true, capture:true});
+  document.addEventListener('touchmove',  onARTouchMove,  {passive:true, capture:true});
+  document.addEventListener('touchend',   onARTouchEnd,   {passive:true, capture:true});
 }
 
 function makeReticle(color){
@@ -727,6 +724,7 @@ function enterAR(){
 function onARReady(session){
   session.addEventListener('end',onSessionEnd);
   session.addEventListener('select',onXRSelect);
+  arActive=true;
   stopPreview();
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('topbar').style.display='flex';
@@ -741,6 +739,7 @@ function onARReady(session){
 }
 
 function onSessionEnd(){
+  arActive=false;
   renderer.setAnimationLoop(null);
   if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
   hitSrcCenter=hitSrcDown=hitSrcUp=null;xrRefSpace=null;xrSession=null;
@@ -814,39 +813,86 @@ function onXRSelect(){
   else doGrab();
 }
 
+// ---- FIXED TOUCH HANDLERS ----
+// These now live on document (capture phase) so they fire even inside WebXR dom-overlay.
+// We check arActive to avoid interfering with the landing page.
+function isOnUIElement(target){
+  return !!target.closest('#tray,#place-panel,#rail,#topbar,#mode-bar,#cart-drawer,#cart-backdrop,#obj-panel,#scale-bar');
+}
+
 function onARTouchStart(e){
-  var onUI=e.target.closest('#tray,#place-panel,#rail,#topbar,#mode-bar,#cart-drawer,#obj-panel,#scale-bar');
-  if(onUI){_tapFromUI=true;return;}
+  if(!arActive)return;
+  // If touch starts on a UI panel, mark as UI tap and bail — don't track for rotation
+  if(isOnUIElement(e.target)){
+    _tapFromUI=true;
+    pinchActive=false;
+    return;
+  }
   _tapFromUI=false;
   if(e.touches.length===2){
     pinchActive=true;
-    var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+    arTouchMoved=true; // two-finger gesture should never trigger select
+    var dx=e.touches[0].clientX-e.touches[1].clientX;
+    var dy=e.touches[0].clientY-e.touches[1].clientY;
     pinchStartDist=Math.sqrt(dx*dx+dy*dy);
     pinchStartScale=(mode==='move'&&grabbedEntry)?grabbedEntry.scale:userScale;
-    arTouchMoved=false;
   }else if(e.touches.length===1){
     arTouchStartX=e.touches[0].clientX;
-    arTouchMoved=false;pinchActive=false;
+    arTouchStartY=e.touches[0].clientY;
+    arTouchMoved=false;
+    pinchActive=false;
   }
 }
+
 function onARTouchMove(e){
+  if(!arActive)return;
+  if(isOnUIElement(e.target))return;
+
   if(e.touches.length===2&&pinchActive){
-    var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
-    var ns=Math.max(.2,Math.min(3,(pinchStartScale)*(Math.sqrt(dx*dx+dy*dy)/pinchStartDist)));
-    if(mode==='move'&&grabbedEntry){grabbedEntry.scale=ns;grabbedEntry.obj.scale.setScalar(ns);}
-    else{userScale=ns;updateScaleVal();}
-    arTouchMoved=true;return;
-  }
-  if(e.touches.length===1){
-    var dx=e.touches[0].clientX-arTouchStartX;
-    if(Math.abs(dx)>6){
-      arTouchMoved=true;
-      if(mode==='move'&&grabbedEntry){grabbedEntry.obj.rotation.y+=dx*.012;grabbedEntry.userRot+=dx*.012;}
-      arTouchStartX=e.touches[0].clientX;
+    var dx=e.touches[0].clientX-e.touches[1].clientX;
+    var dy=e.touches[0].clientY-e.touches[1].clientY;
+    var newDist=Math.sqrt(dx*dx+dy*dy);
+    var ns=Math.max(.2,Math.min(3,pinchStartScale*(newDist/pinchStartDist)));
+    if(mode==='move'&&grabbedEntry){
+      grabbedEntry.scale=ns;
+      grabbedEntry.obj.scale.setScalar(ns);
+    }else{
+      userScale=ns;
+      updateScaleVal();
     }
+    arTouchMoved=true;
+    return;
+  }
+
+  if(e.touches.length===1&&!pinchActive){
+    var deltaX=e.touches[0].clientX-arTouchStartX;
+    var deltaY=e.touches[0].clientY-arTouchStartY;
+    // Only start rotating after a meaningful horizontal swipe (8px threshold)
+    if(!arTouchMoved&&Math.abs(deltaX)<8&&Math.abs(deltaY)<8)return;
+    arTouchMoved=true;
+    // Rotate grabbed object in move mode, or the most-recently-placed object in place mode
+    var target=null;
+    if(mode==='move'&&grabbedEntry){
+      target=grabbedEntry;
+    }else if(mode==='place'&&lastEntry){
+      target=lastEntry;
+    }
+    if(target){
+      target.obj.rotation.y+=deltaX*0.015;
+      target.userRot=(target.userRot||0)+deltaX*0.015;
+    }
+    // Update start position for delta calculation each move event
+    arTouchStartX=e.touches[0].clientX;
+    arTouchStartY=e.touches[0].clientY;
   }
 }
-function onARTouchEnd(){pinchActive=false;}
+
+function onARTouchEnd(e){
+  if(!arActive)return;
+  if(e.touches.length===0){
+    pinchActive=false;
+  }
+}
 
 function doPlace(){
   if(!selId){toast('Select a product from the tray first');return;}
@@ -939,7 +985,7 @@ function showPanel(entry){
     });
     vrow.appendChild(dot);
   });
-  document.getElementById('rotate-hint').style.display=mode==='move'?'block':'none';
+  document.getElementById('rotate-hint').style.display='block';
   document.getElementById('place-panel').classList.add('show');
 }
 function hidePanel(){document.getElementById('place-panel').classList.remove('show');}
@@ -1013,7 +1059,6 @@ function renderCartItems(){
       '<div class="ci-surface">'+{floor:'Floor',wall:'Wall',ceiling:'Ceiling'}[c.def.surface]+'</div></div>'+
       '<div class="ci-price">₱'+c.def.price.toLocaleString()+'</div>'+
       '<div class="ci-rm" data-uid="'+c.uid+'">✕</div>';
-    // FIX 8: Attach remove listener directly, not via querySelector after innerHTML
     var rmBtn=row.querySelector('.ci-rm');
     rmBtn.addEventListener('click',function(e){
       e.stopPropagation();
@@ -1028,10 +1073,8 @@ function openCart(){
   renderCartItems();
   var drawer=document.getElementById('cart-drawer');
   var backdrop=document.getElementById('cart-backdrop');
-  // Set display:flex first so element is in layout, then trigger transition
   drawer.style.display='flex';
   backdrop.style.display='block';
-  // Force a reflow so the browser registers display:flex before we add .open
   drawer.getBoundingClientRect();
   drawer.classList.add('open');
   backdrop.classList.add('show');
@@ -1157,28 +1200,20 @@ function bindButtons(){
   document.getElementById('btn-add-cart').addEventListener('click',function(){_tapFromUI=true;addToCart(lastEntry);});
   document.getElementById('btn-del-placed').addEventListener('click',function(){_tapFromUI=true;if(lastEntry)deleteEntry(lastEntry);else toast('No object selected');});
 
-  // Cart buttons
   document.getElementById('cart-topbar-btn').addEventListener('click',function(e){
-    e.stopPropagation();
-    _tapFromUI=true;
-    openCart();
+    e.stopPropagation();_tapFromUI=true;openCart();
   });
   document.getElementById('cart-close-btn').addEventListener('click',function(e){
-    e.stopPropagation();
-    closeCart();
+    e.stopPropagation();closeCart();
   });
-  // FIX 11: Backdrop click only closes if clicking directly on backdrop, not bubbling from drawer
   document.getElementById('cart-backdrop').addEventListener('click',function(e){
-    if(e.target===this) closeCart();
+    if(e.target===this)closeCart();
   });
   document.getElementById('checkout-btn').addEventListener('click',function(e){
-    e.stopPropagation();
-    toast('Proceeding to checkout…');
-    closeCart();
+    e.stopPropagation();toast('Proceeding to checkout…');closeCart();
   });
   document.getElementById('obj-list-btn').addEventListener('click',function(){_tapFromUI=true;toggleObjPanel();});
 
-  // FIX 12: Prevent touches inside cart drawer from propagating to AR canvas
   document.getElementById('cart-drawer').addEventListener('touchstart',function(e){e.stopPropagation();},{passive:true});
   document.getElementById('cart-drawer').addEventListener('touchmove',function(e){e.stopPropagation();},{passive:true});
 }
