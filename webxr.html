@@ -801,8 +801,12 @@ function arLoop(ts,frame){
     hideReticles();
     if(mode==='place'||(mode==='move'&&grabbedEntry)){aR.visible=true;aR.matrix.fromArray(bestMat);}
     setSurfPill(bestType);
+    // Only move grabbed object when we have a valid surface hit — freeze it when tracking is lost
     if(mode==='move'&&grabbedEntry){
-      grabbedEntry.obj.position.copy(bestPos);grabbedEntry.baseY=bestPos.y;grabbedEntry.surfType=bestType;
+      grabbedEntry.obj.position.copy(bestPos);
+      grabbedEntry.stableY=bestPos.y;
+      grabbedEntry.baseY=bestPos.y;
+      grabbedEntry.surfType=bestType;
       if(grabbedEntry.label)grabbedEntry.label.position.set(bestPos.x,bestPos.y+.35,bestPos.z);
     }
     if(!surfaceFound){
@@ -811,13 +815,22 @@ function arLoop(ts,frame){
       else if(!grabbedEntry)showGrabHint(true);
     }
   }else{
+    // Tracking lost: hide reticle, show scan hint, but DO NOT touch placed object positions
     hideReticles();lastHitPos=null;
     if(surfaceFound){surfaceFound=false;showTapHint(false);showGrabHint(false);showScan(true);}
+    // Render the scene as-is so all objects stay visible exactly where they are
+    renderer.render(scene,camera);
+    return;
   }
   var t=ts*.001;
   placed.forEach(function(e,i){
     if(e===grabbedEntry)return;
-    if(e.surfType==='floor')e.obj.position.y=e.baseY+Math.sin(t*1.1+i*.8)*.008;
+    // stableY is set once at placement time and never overwritten during move/tracking-loss
+    // This ensures jitter and tracking interruptions cannot corrupt the object's anchor position
+    if(e.surfType==='floor'){
+      var anchor=(e.stableY!==undefined)?e.stableY:e.baseY;
+      e.obj.position.y=anchor+Math.sin(t*1.1+i*.8)*.008;
+    }
     if(e.label)e.label.visible=(mode==='move');
   });
   if(grabbedEntry&&grabbedEntry.label)grabbedEntry.label.visible=true;
@@ -902,7 +915,7 @@ function doPlace(){
   var lbl=makePriceLabel(def.name,def.price);
   lbl.position.set(lastHitPos.x,lastHitPos.y+.35,lastHitPos.z);lbl.visible=false;
   scene.add(lbl);scene.add(obj);
-  var entry={obj:obj,def:def,label:lbl,baseY:lastHitPos.y,surfType:lastSurfType,userRot:0,scale:userScale,uid:++placedCounter};
+  var entry={obj:obj,def:def,label:lbl,baseY:lastHitPos.y,stableY:lastHitPos.y,surfType:lastSurfType,userRot:0,scale:userScale,uid:++placedCounter};
   placed.push(entry);lastEntry=entry;updateCount();rebuildObjPanel();
   var sv=0,tgt=userScale;
   var iv=setInterval(function(){sv=Math.min(sv+.07,1);obj.scale.setScalar(tgt*(1-Math.pow(1-sv,3)));if(sv>=1)clearInterval(iv);},14);
@@ -935,6 +948,9 @@ function selectEntry(entry){
 
 function dropGrabbed(){
   if(!grabbedEntry)return;
+  // Lock stableY to wherever it was dropped so float animation anchors correctly
+  grabbedEntry.stableY=grabbedEntry.obj.position.y;
+  grabbedEntry.baseY=grabbedEntry.obj.position.y;
   setHL(grabbedEntry.obj,false);grabbedEntry=null;
   showGrabHint(surfaceFound);hidePanel();rebuildObjPanel();toast('Placed ✓');
 }
