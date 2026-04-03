@@ -195,7 +195,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 }
 #cart-backdrop.show{display:block;}
 
-#cart-drawer{
+#cart-drawer{display:none;
   /* FIX 1: NO pointer-events:none here — it was blocking all taps inside the drawer */
   position:fixed;
   bottom:-100%;
@@ -1029,19 +1029,23 @@ function renderCartItems(){
 
 function openCart(){
   renderCartItems();
-  document.getElementById('cart-backdrop').classList.add('show');
-  // FIX 9: Use setTimeout instead of rAF for more reliable animation trigger
-  setTimeout(function(){
-    document.getElementById('cart-drawer').classList.add('open');
-  }, 10);
+  var drawer=document.getElementById('cart-drawer');
+  var backdrop=document.getElementById('cart-backdrop');
+  drawer.style.display='flex';
+  backdrop.classList.add('show');
+  // Small delay so browser paints display:flex before applying bottom:0 transition
+  setTimeout(function(){drawer.classList.add('open');},20);
 }
 
 function closeCart(){
-  document.getElementById('cart-drawer').classList.remove('open');
-  // FIX 10: Delay backdrop hide until after drawer slide-down animation
+  var drawer=document.getElementById('cart-drawer');
+  var backdrop=document.getElementById('cart-backdrop');
+  drawer.classList.remove('open');
+  // Wait for slide-down animation to finish before hiding
   setTimeout(function(){
-    document.getElementById('cart-backdrop').classList.remove('show');
-  }, 340);
+    drawer.style.display='none';
+    backdrop.classList.remove('show');
+  },350);
 }
 
 function takeShot(){
