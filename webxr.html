@@ -382,27 +382,28 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
     <div id="tray-no-sel">Select a product card to place it</div>
     <div id="cards"></div>
   </div>
-</div>
 
-<!-- Cart — outside #hud, uses fixed positioning and highest z-index -->
-<div id="cart-backdrop"></div>
-<div id="cart-drawer">
-  <div id="cart-drawer-inner">
-    <div id="cart-handle"></div>
-    <div id="cart-head">
-      <div id="cart-title">🛒 Cart</div>
-      <button id="cart-close-btn">✕ Close</button>
+  <!-- Cart INSIDE #hud so it renders in WebXR domOverlay -->
+  <div id="cart-backdrop"></div>
+  <div id="cart-drawer">
+    <div id="cart-drawer-inner">
+      <div id="cart-handle"></div>
+      <div id="cart-head">
+        <div id="cart-title">🛒 Cart</div>
+        <button id="cart-close-btn">✕ Close</button>
+      </div>
+      <div id="cart-items"></div>
     </div>
-    <div id="cart-items"></div>
+    <div id="cart-footer">
+      <div id="cart-total"><div id="cart-total-lbl">Total</div><div id="cart-total-val">₱0</div></div>
+      <button id="checkout-btn">Proceed to Checkout →</button>
+    </div>
   </div>
-  <div id="cart-footer">
-    <div id="cart-total"><div id="cart-total-lbl">Total</div><div id="cart-total-val">₱0</div></div>
-    <button id="checkout-btn">Proceed to Checkout →</button>
-  </div>
+
+  <div id="toast"></div>
 </div>
 
 <div id="flash"></div>
-<div id="toast"></div>
 
 <script>
 (function(){
