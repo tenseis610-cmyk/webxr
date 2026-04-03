@@ -141,6 +141,55 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   font-size:.58rem;color:rgba(255,255,255,.28);line-height:1.6;
 }
 
+/* ── LANDING PRODUCT PICKER ─────────────────────────────── */
+#landing-picker{
+  margin-bottom:1.2rem;
+}
+#landing-picker-title{
+  font-size:.62rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.5);
+  text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;
+}
+#landing-picker-selcount{
+  font-size:.58rem;font-weight:600;color:var(--accent2);
+  background:rgba(82,183,136,.12);border:1px solid rgba(82,183,136,.25);
+  border-radius:99px;padding:.1rem .55rem;
+}
+#landing-product-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.42rem;
+  max-height:180px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent;
+  padding-right:.15rem;
+}
+#landing-product-grid::-webkit-scrollbar{width:3px;}
+#landing-product-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px;}
+.lp-card{
+  background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:.55rem .4rem;
+  display:flex;flex-direction:column;align-items:center;gap:.22rem;
+  cursor:pointer;touch-action:manipulation;transition:all .18s;
+  position:relative;
+}
+.lp-card:active{transform:scale(.93);}
+.lp-card.sel{
+  border-color:var(--accent2);background:rgba(82,183,136,.12);
+}
+.lp-card .lp-em{font-size:1.4rem;line-height:1;}
+.lp-card .lp-nm{font-size:.44rem;color:rgba(255,255,255,.65);text-align:center;font-weight:500;line-height:1.3;}
+.lp-card .lp-pr{font-size:.46rem;color:var(--accent2);font-weight:700;}
+.lp-card .lp-chk{
+  position:absolute;top:4px;right:4px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent2);color:#fff;
+  font-size:.5rem;display:none;align-items:center;justify-content:center;font-weight:700;
+}
+.lp-card.sel .lp-chk{display:flex;}
+.lp-surf-dot{
+  width:5px;height:5px;border-radius:50%;
+}
+.lp-surf-dot.floor{background:var(--accent2);}
+.lp-surf-dot.wall{background:#F59E0B;}
+.lp-surf-dot.ceiling{background:#60A5FA;}
+
 /* ── HIDE landing when AR starts ──────────────────────────── */
 #landing.hidden{
   opacity:0;pointer-events:none;transition:opacity .35s;
@@ -366,6 +415,14 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 #pp-surface.floor{color:var(--accent);border-color:var(--accent2);background:rgba(82,183,136,.08);}
 #pp-surface.wall{color:#B45309;border-color:#F59E0B;background:rgba(245,158,11,.08);}
 #pp-surface.ceiling{color:#1D4ED8;border-color:#60A5FA;background:rgba(96,165,250,.08);}
+#pp-close{
+  width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.07);
+  border:1px solid var(--border);color:var(--mid);font-size:.7rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;flex-shrink:0;margin-left:.4rem;
+  transition:all .15s;
+}
+#pp-close:active{background:#EF4444;color:#fff;border-color:#EF4444;}
 #pp-variants{display:flex;gap:.4rem;margin:.55rem 0 .6rem;}
 .vdot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid var(--border);transition:all .15s;touch-action:manipulation;}
 .vdot.on{border-color:var(--dark);box-shadow:0 0 0 2px rgba(0,0,0,.15);}
@@ -427,6 +484,8 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 #tray.show{display:block;}
 #tray-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;}
 #tray-label{font-size:.6rem;font-weight:600;color:var(--mid);letter-spacing:1px;}
+#tray-no-sel{font-size:.62rem;color:var(--mid);text-align:center;padding:.55rem 0;font-style:italic;display:none;}
+#tray-no-sel.show{display:block;}
 #tray-right{display:flex;gap:.5rem;align-items:center;}
 #obj-list-btn{
   font-size:.6rem;font-weight:600;color:var(--mid);background:var(--light);
@@ -549,32 +608,16 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
   <div id="landing-sheet">
 
     <div id="landing-headline">See it in your<br>space before <span>you buy.</span></div>
-    <div id="landing-sub">Place true-to-scale 3D furniture in your room using your phone's camera. Move, rotate, resize — all in real time.</div>
+    <div id="landing-sub">Pick the furniture you want to preview, then launch the AR experience.</div>
 
-    <div id="steps">
-      <div class="step">
-        <div class="step-num">Step 1</div>
-        <div class="step-icon">📷</div>
-        <div class="step-title">Point &amp; scan</div>
-        <div class="step-desc">Slowly move your phone to detect floors, walls &amp; ceilings.</div>
+    <!-- Product picker -->
+    <div id="landing-picker">
+      <div id="landing-picker-title">
+        Choose Products to Preview
+        <span id="landing-picker-selcount">0 selected</span>
       </div>
-      <div class="step">
-        <div class="step-num">Step 2</div>
-        <div class="step-icon">🪑</div>
-        <div class="step-title">Choose a piece</div>
-        <div class="step-desc">Browse the catalog and select furniture to place.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">Step 3</div>
-        <div class="step-icon">👆</div>
-        <div class="step-title">Tap to place</div>
-        <div class="step-desc">Tap any detected surface to drop the model into your room.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">Step 4</div>
-        <div class="step-icon">✋</div>
-        <div class="step-title">Move &amp; rotate</div>
-        <div class="step-desc">Switch to Move mode, grab objects, swipe to rotate, pinch to scale.</div>
+      <div id="landing-product-grid">
+        <!-- filled by JS -->
       </div>
     </div>
 
@@ -680,7 +723,10 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
         <div id="pp-dims">—</div>
         <div id="pp-surface">—</div>
       </div>
-      <div id="pp-price">—</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;">
+        <button id="pp-close" title="Close">✕</button>
+        <div id="pp-price">—</div>
+      </div>
     </div>
     <div id="pp-variants"></div>
     <div id="pp-actions">
@@ -705,15 +751,16 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
     <div><button class="rb danger" id="rb-clear">✕<div class="rb-lbl">CLEAR</div></button></div>
   </div>
 
-  <!-- AR tray (furniture quick-select) -->
+  <!-- AR tray (selected products from landing) -->
   <div id="tray">
     <div id="tray-header">
-      <div id="tray-label">QUICK SELECT</div>
+      <div id="tray-label">SELECTED PRODUCTS</div>
       <div id="tray-right">
         <button id="obj-list-btn">📦 Objects <span id="pcnt">0</span></button>
         <div id="list-btn">🛒 Cart <span id="cart-count">0</span></div>
       </div>
     </div>
+    <div id="tray-no-sel">No products selected — use the catalog (☰) to add</div>
     <div id="cards"></div>
   </div>
 
@@ -894,6 +941,10 @@ var wishSet={};
 var touchStartX=0,touchStartY=0,touchRotating=false,touchMoved=false;
 var pinchStartDist=0,pinchActive=false,pinchStartScale=1;
 var prevObjs=[],prevActive=false,prevRAF=null;
+// Landing product picker
+var landingSelected=new Set(); // set of product IDs chosen on landing
+// Move mode: require explicit tap before grabbing
+var moveReadyToGrab=false; // becomes true only after a clean tap in move mode
 
 // ── SCENE ────────────────────────────────────────────────────
 function initScene(){
@@ -997,6 +1048,7 @@ function onARReady(session){
   document.getElementById('rail').classList.add('show');
   document.getElementById('mode-bar').classList.add('show');
   document.getElementById('scale-bar').classList.add('show');
+  buildTray(); // rebuild tray to show landing-selected products
   setModeUI('place');
   showScan(true);showTapHint(false);showGrabHint(false);
   renderer.setAnimationLoop(arLoop);
@@ -1073,8 +1125,12 @@ function arLoop(ts,frame){
 }
 
 // ── TAP ──────────────────────────────────────────────────────
+// Guard: was the last touchstart on a UI element? If so ignore this XR select event.
+var _tapFromUI=false;
+
 function onTap(){
   if(document.getElementById('cart-drawer').classList.contains('open'))return;
+  if(_tapFromUI){_tapFromUI=false;return;}
   if(touchMoved){touchMoved=false;return;}
   if(mode==='place')doPlace();else doGrab();
 }
@@ -1103,6 +1159,8 @@ function doPlace(){
 }
 
 function doGrab(){
+  // If we just switched to move mode, this tap IS the first intentional grab tap — allow it
+  // but the _tapFromUI guard already blocks button-originated taps
   if(grabbedEntry){dropGrabbed();return;}
   if(!placed.length){toast('No furniture placed yet');return;}
   var camPos=new THREE.Vector3();var camDir=new THREE.Vector3();
@@ -1146,7 +1204,10 @@ function deleteEntry(entry){
 
 // ── TOUCH ────────────────────────────────────────────────────
 function onTouchStart(e){
-  if(e.target.closest('#tray')||e.target.closest('#place-panel')||e.target.closest('#rail')||e.target.closest('#topbar')||e.target.closest('#mode-bar')||e.target.closest('#cart-drawer')||e.target.closest('#sidebar')||e.target.closest('#obj-panel')||e.target.closest('#scale-bar')||e.target.closest('#landing'))return;
+  // Check if the touch started on any UI element
+  var onUI=e.target.closest('#tray')||e.target.closest('#place-panel')||e.target.closest('#rail')||e.target.closest('#topbar')||e.target.closest('#mode-bar')||e.target.closest('#cart-drawer')||e.target.closest('#sidebar')||e.target.closest('#sidebar-overlay')||e.target.closest('#obj-panel')||e.target.closest('#scale-bar')||e.target.closest('#landing');
+  if(onUI){_tapFromUI=true;return;}
+  _tapFromUI=false;
   if(e.touches.length===2){
     pinchActive=true;touchRotating=false;
     var dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
@@ -1233,6 +1294,7 @@ function toggleObjPanel(){rebuildObjPanel();document.getElementById('obj-panel')
 // ── MODE ─────────────────────────────────────────────────────
 function setModeUI(m){
   mode=m;
+  moveReadyToGrab=false; // reset: require explicit tap before grabbing
   document.getElementById('mb-place').classList.toggle('on',m==='place');
   document.getElementById('mb-move').classList.toggle('on',m==='move');
   if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
@@ -1318,11 +1380,19 @@ function updateCount(){document.getElementById('pcnt').textContent=placed.length
 var toastT;
 function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){el.classList.remove('on');},2600);}
 
-// ── BUILD TRAY ────────────────────────────────────────────────
+// ── BUILD TRAY (only shows landing-selected products) ─────────
 function buildTray(){
   var wrap=document.getElementById('cards');
-  CATALOG.forEach(function(def){
-    var card=document.createElement('div');card.className='card';card.dataset.id=def.id;
+  var noSel=document.getElementById('tray-no-sel');
+  wrap.innerHTML='';
+  var toShow=landingSelected.size>0?CATALOG.filter(function(def){return landingSelected.has(def.id);}):[];
+  if(!toShow.length){
+    noSel.classList.add('show');
+    return;
+  }
+  noSel.classList.remove('show');
+  toShow.forEach(function(def){
+    var card=document.createElement('div');card.className='card'+(selId===def.id?' sel':'');card.dataset.id=def.id;
     card.innerHTML='<div class="cem">'+def.em+'</div><div class="cnm">'+def.name+'</div><div class="cpr">₱'+def.price.toLocaleString()+'</div><div class="cdot '+def.surface+'"></div>';
     card.addEventListener('click',function(){selectCatalogItem(def.id);});
     wrap.appendChild(card);
@@ -1381,14 +1451,21 @@ function renderMiniPreview(def,container,emSpan){
 }
 
 function selectCatalogItem(id){
-  if(selId===id){selId=null;toast('Deselected');}
-  else{
+  if(selId===id){
+    selId=null;
+    toast('Deselected');
+  }else{
     selId=id;
     var def=CATALOG.find(function(m){return m.id===id;});
     if(def)toast(def.em+' '+def.name+' · ₱'+def.price.toLocaleString());
+    // If we're in AR and this item wasn't in the tray yet, add it
+    if(xrSession&&def&&!landingSelected.has(id)){
+      landingSelected.add(id);
+    }
   }
   document.querySelectorAll('.card').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
   document.querySelectorAll('.sb-item').forEach(function(c){c.classList.toggle('sel',c.dataset.id===selId);});
+  if(xrSession)buildTray(); // keep tray in sync
   updateSbFooter();
 }
 
@@ -1403,6 +1480,35 @@ function updateSbFooter(){
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('active');document.getElementById('sidebar-toggle').classList.add('active');buildSidebar();}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('active');document.getElementById('sidebar-toggle').classList.remove('active');}
 
+// ── LANDING PRODUCT PICKER ────────────────────────────────────
+function buildLandingPicker(){
+  var grid=document.getElementById('landing-product-grid');
+  grid.innerHTML='';
+  CATALOG.forEach(function(def){
+    var card=document.createElement('div');
+    card.className='lp-card'+(landingSelected.has(def.id)?' sel':'');
+    card.dataset.id=def.id;
+    card.innerHTML=
+      '<div class="lp-chk">✓</div>'+
+      '<div class="lp-em">'+def.em+'</div>'+
+      '<div class="lp-nm">'+def.name+'</div>'+
+      '<div class="lp-pr">₱'+def.price.toLocaleString()+'</div>'+
+      '<div class="lp-surf-dot '+def.surface+'"></div>';
+    card.addEventListener('click',function(){
+      if(landingSelected.has(def.id)){landingSelected.delete(def.id);}
+      else{landingSelected.add(def.id);}
+      card.classList.toggle('sel',landingSelected.has(def.id));
+      document.getElementById('landing-picker-selcount').textContent=landingSelected.size+' selected';
+      // Update CTA label
+      var cta=document.getElementById('landing-cta');
+      if(!cta.classList.contains('na')){
+        cta.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> '+(landingSelected.size>0?'Preview '+landingSelected.size+' Item'+(landingSelected.size>1?'s':'')+' in AR →':'Start AR Experience');
+      }
+    });
+    grid.appendChild(card);
+  });
+}
+
 // ── BIND BUTTONS ─────────────────────────────────────────────
 function bindButtons(){
   // Landing CTA
@@ -1410,26 +1516,29 @@ function bindButtons(){
     if(this.classList.contains('na'))return;
     enterAR();
   });
+  // Product panel close button
+  document.getElementById('pp-close').addEventListener('click',function(){hidePanel();if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;rebuildObjPanel();}});
   // Rail
-  document.getElementById('rb-undo').addEventListener('click',function(){if(!placed.length)return;deleteEntry(placed[placed.length-1]);toast('↩ Removed');});
-  document.getElementById('rb-del').addEventListener('click',function(){if(!grabbedEntry){toast('Grab an object first');return;}deleteEntry(grabbedEntry);});
-  document.getElementById('rb-photo').addEventListener('click',takeShot);
+  document.getElementById('rb-undo').addEventListener('click',function(){_tapFromUI=true;if(!placed.length)return;deleteEntry(placed[placed.length-1]);toast('↩ Removed');});
+  document.getElementById('rb-del').addEventListener('click',function(){_tapFromUI=true;if(!grabbedEntry){toast('Grab an object first');return;}deleteEntry(grabbedEntry);});
+  document.getElementById('rb-photo').addEventListener('click',function(){_tapFromUI=true;takeShot();});
   document.getElementById('rb-clear').addEventListener('click',function(){
+    _tapFromUI=true;
     if(!placed.length){toast('Nothing to clear');return;}
     if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
     placed.forEach(function(e){scene.remove(e.obj);if(e.label)scene.remove(e.label);});
     placed=[];lastEntry=null;updateCount();hidePanel();rebuildObjPanel();toast('All cleared');
   });
   // Mode
-  document.getElementById('mb-place').addEventListener('click',function(){if(xrSession)setModeUI('place');});
-  document.getElementById('mb-move').addEventListener('click',function(){if(xrSession)setModeUI('move');});
+  document.getElementById('mb-place').addEventListener('click',function(ev){ev.stopPropagation();_tapFromUI=true;if(xrSession)setModeUI('place');});
+  document.getElementById('mb-move').addEventListener('click',function(ev){ev.stopPropagation();_tapFromUI=true;if(xrSession)setModeUI('move');});
   // Scale
-  document.getElementById('scale-up').addEventListener('click',function(){changeScale(.1);});
-  document.getElementById('scale-dn').addEventListener('click',function(){changeScale(-.1);});
+  document.getElementById('scale-up').addEventListener('click',function(ev){ev.stopPropagation();_tapFromUI=true;changeScale(.1);});
+  document.getElementById('scale-dn').addEventListener('click',function(ev){ev.stopPropagation();_tapFromUI=true;changeScale(-.1);});
   // Product panel
-  document.getElementById('btn-add-cart').addEventListener('click',function(){addToCart(lastEntry);});
-  document.getElementById('btn-wishlist').addEventListener('click',function(){toggleWish(lastEntry);});
-  document.getElementById('btn-del-placed').addEventListener('click',function(){if(lastEntry)deleteEntry(lastEntry);else toast('No object selected');});
+  document.getElementById('btn-add-cart').addEventListener('click',function(){_tapFromUI=true;addToCart(lastEntry);});
+  document.getElementById('btn-wishlist').addEventListener('click',function(){_tapFromUI=true;toggleWish(lastEntry);});
+  document.getElementById('btn-del-placed').addEventListener('click',function(){_tapFromUI=true;if(lastEntry)deleteEntry(lastEntry);else toast('No object selected');});
   // Cart
   document.getElementById('list-btn').addEventListener('click',openCart);
   document.getElementById('cart-close').addEventListener('click',function(){document.getElementById('cart-drawer').classList.remove('open');});
@@ -1447,7 +1556,14 @@ function bindButtons(){
     });
   });
   document.getElementById('sb-btn-close-sel').addEventListener('click',function(){selectCatalogItem(selId);});
-  document.getElementById('sb-btn-place').addEventListener('click',function(){closeSidebar();if(xrSession){setModeUI('place');toast('👆 Tap a surface to place');}});
+  document.getElementById('sb-btn-place').addEventListener('click',function(){
+    closeSidebar();
+    if(xrSession){
+      // Also add this item to landingSelected so tray shows it
+      if(selId&&!landingSelected.has(selId)){landingSelected.add(selId);buildTray();}
+      setModeUI('place');toast('👆 Tap a surface to place');
+    }
+  });
 }
 
 // ── AR CHECK ─────────────────────────────────────────────────
@@ -1470,7 +1586,10 @@ function markNA(){
 function handleDeepLink(){
   var pid=new URLSearchParams(window.location.search).get('product');
   if(!pid)return;
+  landingSelected.add(pid);
   selectCatalogItem(pid);
+  buildLandingPicker();
+  document.getElementById('landing-picker-selcount').textContent=landingSelected.size+' selected';
 }
 
 // ── LOADER ───────────────────────────────────────────────────
@@ -1484,6 +1603,7 @@ window.addEventListener('DOMContentLoaded',function(){
   runLoader(function(){
     try{
       initScene();
+      buildLandingPicker();
       buildTray();
       bindButtons();
       checkAR();
