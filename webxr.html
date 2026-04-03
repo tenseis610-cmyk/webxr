@@ -266,6 +266,15 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 }
 #checkout-btn:active{background:#1B4D38;}
 
+/* Transparent layer inside dom-overlay that captures swipe/pinch on bare AR canvas */
+#ar-touch-layer{
+  position:absolute;inset:0;z-index:2;
+  pointer-events:none; /* enabled only during AR */
+  touch-action:none;
+  background:transparent;
+}
+#ar-touch-layer.active{pointer-events:all;}
+
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9998;transition:opacity .04s;}
 #toast{position:fixed;bottom:9.2rem;left:50%;transform:translateX(-50%) translateY(6px);font-size:.65rem;font-weight:600;color:var(--dark);background:#fff;border:1px solid var(--border);border-radius:99px;padding:.38rem 1rem;white-space:nowrap;pointer-events:none;z-index:99999;opacity:0;transition:all .22s;box-shadow:var(--shadow);}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -315,6 +324,7 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 <div id="ar-canvas-host"></div>
 
 <div id="hud">
+  <div id="ar-touch-layer"></div>
   <div id="topbar" style="display:none;">
     <div id="logo">MIRA <span>HOME</span></div>
     <div id="surf-pill"></div>
@@ -539,10 +549,14 @@ var hitSrcCenter=null,hitSrcDown=null,hitSrcUp=null;
 var cart=[];
 var _tapFromUI=false;
 
-// ---- TOUCH STATE (now document-level, works inside WebXR dom-overlay) ----
+// ---- TOUCH STATE ----
+// We use a transparent #ar-touch-layer div that lives INSIDE the dom-overlay root (#hud).
+// The XR spec guarantees touch events on DOM elements within the overlay are delivered
+// normally. The layer sits at z-index 2 (below UI panels at higher z) so panel touches
+// fall through to the panel, while bare-canvas swipes hit the layer.
 var arTouchStartX=0,arTouchStartY=0,arTouchMoved=false;
 var pinchStartDist=0,pinchActive=false,pinchStartScale=1;
-var arActive=false; // true only when XR session is running
+var arActive=false;
 
 var prevCurrentIdx=0,prevCurrentObj=null,prevActive=false,prevRAF=null;
 var prevAzimuth=0.4,prevElevation=0.32;
@@ -675,11 +689,14 @@ function initARScene(){
   buildReticles();
   window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
-  // ---- FIX: attach touch listeners to document with capture so they fire
-  //           before WebXR's dom-overlay consumes them ----
-  document.addEventListener('touchstart', onARTouchStart, {passive:true, capture:true});
-  document.addEventListener('touchmove',  onARTouchMove,  {passive:true, capture:true});
-  document.addEventListener('touchend',   onARTouchEnd,   {passive:true, capture:true});
+  // Attach touch listeners to the transparent overlay layer (inside dom-overlay root).
+  // The XR dom-overlay spec guarantees touches on real DOM elements within the overlay
+  // root are dispatched normally — this is the only reliable way to get swipe events
+  // while an immersive-ar session is active.
+  var tl=document.getElementById('ar-touch-layer');
+  tl.addEventListener('touchstart', onARTouchStart, {passive:false});
+  tl.addEventListener('touchmove',  onARTouchMove,  {passive:false});
+  tl.addEventListener('touchend',   onARTouchEnd,   {passive:true});
 }
 
 function makeReticle(color){
@@ -725,6 +742,7 @@ function onARReady(session){
   session.addEventListener('end',onSessionEnd);
   session.addEventListener('select',onXRSelect);
   arActive=true;
+  document.getElementById('ar-touch-layer').classList.add('active');
   stopPreview();
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('topbar').style.display='flex';
@@ -740,6 +758,7 @@ function onARReady(session){
 
 function onSessionEnd(){
   arActive=false;
+  document.getElementById('ar-touch-layer').classList.remove('active');
   renderer.setAnimationLoop(null);
   if(grabbedEntry){setHL(grabbedEntry.obj,false);grabbedEntry=null;}
   hitSrcCenter=hitSrcDown=hitSrcUp=null;xrRefSpace=null;xrSession=null;
@@ -813,85 +832,53 @@ function onXRSelect(){
   else doGrab();
 }
 
-// ---- FIXED TOUCH HANDLERS ----
-// These now live on document (capture phase) so they fire even inside WebXR dom-overlay.
-// We check arActive to avoid interfering with the landing page.
-function isOnUIElement(target){
-  return !!target.closest('#tray,#place-panel,#rail,#topbar,#mode-bar,#cart-drawer,#cart-backdrop,#obj-panel,#scale-bar');
-}
-
+// ---- TOUCH HANDLERS (bound to #ar-touch-layer, inside dom-overlay root) ----
 function onARTouchStart(e){
-  if(!arActive)return;
-  // If touch starts on a UI panel, mark as UI tap and bail — don't track for rotation
-  if(isOnUIElement(e.target)){
-    _tapFromUI=true;
-    pinchActive=false;
-    return;
-  }
-  _tapFromUI=false;
+  e.preventDefault(); // prevent XR select from also firing on this touch
   if(e.touches.length===2){
     pinchActive=true;
-    arTouchMoved=true; // two-finger gesture should never trigger select
+    arTouchMoved=true; // two-finger never triggers select
     var dx=e.touches[0].clientX-e.touches[1].clientX;
     var dy=e.touches[0].clientY-e.touches[1].clientY;
     pinchStartDist=Math.sqrt(dx*dx+dy*dy);
     pinchStartScale=(mode==='move'&&grabbedEntry)?grabbedEntry.scale:userScale;
-  }else if(e.touches.length===1){
+  }else{
+    pinchActive=false;
     arTouchStartX=e.touches[0].clientX;
     arTouchStartY=e.touches[0].clientY;
     arTouchMoved=false;
-    pinchActive=false;
   }
 }
 
 function onARTouchMove(e){
-  if(!arActive)return;
-  if(isOnUIElement(e.target))return;
-
+  e.preventDefault();
   if(e.touches.length===2&&pinchActive){
     var dx=e.touches[0].clientX-e.touches[1].clientX;
     var dy=e.touches[0].clientY-e.touches[1].clientY;
-    var newDist=Math.sqrt(dx*dx+dy*dy);
-    var ns=Math.max(.2,Math.min(3,pinchStartScale*(newDist/pinchStartDist)));
-    if(mode==='move'&&grabbedEntry){
-      grabbedEntry.scale=ns;
-      grabbedEntry.obj.scale.setScalar(ns);
-    }else{
-      userScale=ns;
-      updateScaleVal();
-    }
+    var ns=Math.max(.2,Math.min(3,pinchStartScale*(Math.sqrt(dx*dx+dy*dy)/pinchStartDist)));
+    if(mode==='move'&&grabbedEntry){grabbedEntry.scale=ns;grabbedEntry.obj.scale.setScalar(ns);}
+    else{userScale=ns;updateScaleVal();}
     arTouchMoved=true;
     return;
   }
-
   if(e.touches.length===1&&!pinchActive){
     var deltaX=e.touches[0].clientX-arTouchStartX;
     var deltaY=e.touches[0].clientY-arTouchStartY;
-    // Only start rotating after a meaningful horizontal swipe (8px threshold)
-    if(!arTouchMoved&&Math.abs(deltaX)<8&&Math.abs(deltaY)<8)return;
+    if(Math.abs(deltaX)<6&&Math.abs(deltaY)<6)return; // dead zone
     arTouchMoved=true;
-    // Rotate grabbed object in move mode, or the most-recently-placed object in place mode
-    var target=null;
-    if(mode==='move'&&grabbedEntry){
-      target=grabbedEntry;
-    }else if(mode==='place'&&lastEntry){
-      target=lastEntry;
-    }
+    // rotate grabbed object (move mode) or last placed object (place mode)
+    var target=(mode==='move'&&grabbedEntry)?grabbedEntry:lastEntry;
     if(target){
       target.obj.rotation.y+=deltaX*0.015;
       target.userRot=(target.userRot||0)+deltaX*0.015;
     }
-    // Update start position for delta calculation each move event
     arTouchStartX=e.touches[0].clientX;
     arTouchStartY=e.touches[0].clientY;
   }
 }
 
 function onARTouchEnd(e){
-  if(!arActive)return;
-  if(e.touches.length===0){
-    pinchActive=false;
-  }
+  if(e.touches.length===0)pinchActive=false;
 }
 
 function doPlace(){
