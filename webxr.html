@@ -195,26 +195,22 @@ body{background:#0d1117;font-family:'Inter',sans-serif;height:100vh;overflow:hid
 }
 #cart-backdrop.show{display:block;}
 
-#cart-drawer{display:none;
-  /* FIX 1: NO pointer-events:none here — it was blocking all taps inside the drawer */
+#cart-drawer{
+  display:none;
   position:fixed;
-  bottom:-100%;
+  bottom:0;
   left:0;right:0;
   background:#fff;
   border-top:1px solid var(--border);
   border-radius:20px 20px 0 0;
   z-index:59999;
-  transition:bottom .32s cubic-bezier(.34,1.1,.64,1);
-  /* FIX 2: Use max-height instead of fixed height, and flex layout */
   max-height:70vh;
-  height:auto;
-  display:flex;
   flex-direction:column;
   box-shadow:0 -10px 40px rgba(0,0,0,.3);
-  /* FIX 3: Ensure it's always interactive when visible */
-  pointer-events:all;
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.34,1.1,.64,1);
 }
-#cart-drawer.open{bottom:0;}
+#cart-drawer.open{transform:translateY(0);}
 
 /* FIX 4: Inner scroll area must have explicit flex properties */
 #cart-drawer-inner{
@@ -1031,20 +1027,23 @@ function openCart(){
   renderCartItems();
   var drawer=document.getElementById('cart-drawer');
   var backdrop=document.getElementById('cart-backdrop');
+  // Set display:flex first so element is in layout, then trigger transition
   drawer.style.display='flex';
+  backdrop.style.display='block';
+  // Force a reflow so the browser registers display:flex before we add .open
+  drawer.getBoundingClientRect();
+  drawer.classList.add('open');
   backdrop.classList.add('show');
-  // Small delay so browser paints display:flex before applying bottom:0 transition
-  setTimeout(function(){drawer.classList.add('open');},20);
 }
 
 function closeCart(){
   var drawer=document.getElementById('cart-drawer');
   var backdrop=document.getElementById('cart-backdrop');
   drawer.classList.remove('open');
-  // Wait for slide-down animation to finish before hiding
+  backdrop.classList.remove('show');
   setTimeout(function(){
     drawer.style.display='none';
-    backdrop.classList.remove('show');
+    backdrop.style.display='none';
   },350);
 }
 
